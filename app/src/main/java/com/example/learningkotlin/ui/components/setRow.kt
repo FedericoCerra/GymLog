@@ -28,7 +28,7 @@ fun SetRow(
     set: WorkoutSet,
     onDelete: () -> Unit
 ) {
-    var weightText by remember { mutableStateOf(set.weight.toString().removeSuffix(".0")) }
+    var  weightText by remember { mutableStateOf(set.weight.toString().removeSuffix(".0")) }
     var repsText by remember { mutableStateOf(set.reps.toString()) }
     var isChecked by remember { mutableStateOf(set.isDone) }
     var showMenu by remember { mutableStateOf(false) }
