@@ -26,7 +26,8 @@ import com.example.learningkotlin.model.WorkoutSet
 fun SetRow(
     index: Int,
     set: WorkoutSet,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onCheck: (Boolean) -> Unit
 ) {
     var  weightText by remember { mutableStateOf(set.weight.toString().removeSuffix(".0")) }
     var repsText by remember { mutableStateOf(set.reps.toString()) }
@@ -104,6 +105,7 @@ fun SetRow(
                 onClick = {
                     isChecked = !isChecked
                     set.isDone = isChecked
+                    onCheck(isChecked)
                 },
                 shape = RoundedCornerShape(4.dp),
                 color = if (isChecked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,

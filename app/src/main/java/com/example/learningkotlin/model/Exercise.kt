@@ -2,6 +2,7 @@ package com.example.learningkotlin.model
 
 data class Exercise(
     val id: Int,
-    val name: String,
-    val sets: MutableList<WorkoutSet> // <--- THE BIG CHANGE: A list of rows
+    var name: String,
+    val sets: MutableList<WorkoutSet>,
+    var restTimer: Int = 90
 )

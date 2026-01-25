@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
                                     id = 1,
                                     name = "Bench Press",
                                     sets = mutableListOf(
-                                        WorkoutSet(1, 40.0, 10, true), // Set 1: Done
+                                        WorkoutSet(1, 40.0, 10, false), // Set 1: Done
                                         WorkoutSet(2, 60.0, 8, false), // Set 2: Not done
                                         WorkoutSet(3, 80.0, 5, false)  // Set 3: Not done
                                     )
