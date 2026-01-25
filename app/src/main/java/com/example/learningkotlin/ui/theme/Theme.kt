@@ -76,7 +76,6 @@ fun LearningKotlinTheme(
         SideEffect {
             val window = (view.context as Activity).window
             // Make the status bar (battery, time) match the background
-            window.statusBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
