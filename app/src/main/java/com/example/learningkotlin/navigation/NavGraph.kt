@@ -6,16 +6,17 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.learningkotlin.model.Workout // Import your model!
+import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.ui.screens.HomeScreen
 import com.example.learningkotlin.ui.screens.WorkoutDetailScreen
 
 @Composable
-fun SetupNavGraph(
+fun NavGraph(
     navController: NavHostController,
-    workouts: MutableList<Workout>,  // <--- CHANGED: Now accepts Workouts
-    onAddFunc: () -> Unit,
-    onDeleteFunc: (Workout) -> Unit  // <--- CHANGED: Deletes a Workout object
+    workouts: MutableList<Workout>,      // The Data
+    onAddWorkout: () -> Unit,            // Action: Add Button clicked
+    onDeleteWorkout: (Workout) -> Unit,  // Action: Delete clicked
+    onSave: () -> Unit                   // Action: Save to file
 ) {
     NavHost(
         navController = navController,
@@ -24,36 +25,39 @@ fun SetupNavGraph(
         // --- SCREEN 1: HOME ---
         composable("home") {
             HomeScreen(
-                workouts = workouts, // Pass the real list
-                onAddClick = onAddFunc,
-                onDeleteClick = onDeleteFunc,
-                onItemClick = { workout ->
-                    // Pass the workout name to the URL
-                    navController.navigate("detail/${workout.name}")
+                workouts = workouts,
+                onAddClick = onAddWorkout,
+                onDeleteClick = onDeleteWorkout,
+                onWorkoutClick = { workout ->
+                    // Navigate to Detail using the ID
+                    navController.navigate("detail/${workout.id}")
                 }
             )
         }
 
         // --- SCREEN 2: DETAIL ---
         composable(
-            route = "detail/{name}",
-            arguments = listOf(navArgument("name") { type = NavType.StringType })
+            route = "detail/{workoutId}",
+            arguments = listOf(navArgument("workoutId") { type = NavType.IntType })
         ) { backStackEntry ->
-            val workoutName = backStackEntry.arguments?.getString("name") ?: "Unknown"
+            // 1. Get ID from URL
+            val workoutId = backStackEntry.arguments?.getInt("workoutId")
 
-            // Find the full workout object that matches this name
-            // (In a real app, you'd find by ID, but Name works for now)
-            val selectedWorkout = workouts.find { it.name == workoutName }
+            // 2. Find the specific workout object
+            val selectedWorkout = workouts.find { it.id == workoutId }
 
+            // 3. Show Screen
             if (selectedWorkout != null) {
                 WorkoutDetailScreen(
                     workout = selectedWorkout,
-                    onBackClick = { navController.popBackStack() },
-                    onAddExerciseClick = { /* We will add this later */ }
+                    onBackClick = {
+                        onSave() // <--- Auto-save when going back
+                        navController.popBackStack()
+                    },
+                    onAddExerciseClick = {
+                        // Handled internally by the screen now
+                    }
                 )
-            } else {
-                // Fallback if not found (optional safety)
-                androidx.compose.material3.Text("Workout not found")
             }
         }
     }

@@ -29,7 +29,7 @@ fun HomeScreen(
     workouts: List<Workout>,
     onAddClick: () -> Unit,
     onDeleteClick: (Workout) -> Unit, // Kept for logic, but we might hide it in a menu later
-    onItemClick: (Workout) -> Unit
+    onWorkoutClick: (Workout) -> Unit
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -77,7 +77,7 @@ fun HomeScreen(
             items(workouts) { workout ->
                 WorkoutListItem(
                     workout = workout,
-                    onClick = { onItemClick(workout) },
+                    onClick = { onWorkoutClick(workout) },
                     onDelete = { onDeleteClick(workout) }
                 )
             }
