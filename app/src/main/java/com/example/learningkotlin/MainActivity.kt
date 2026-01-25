@@ -35,12 +35,19 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     workouts = workouts,
                     onSave = { save() },
-                    onAddWorkout = {
+
+                    // CHANGED: Now we receive the 'name' from the dialog
+                    onAddWorkout = { name ->
                         val nextId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
-                        val newWorkout = Workout(nextId, "Routine $nextId", mutableListOf())
+                        val newWorkout = Workout(
+                            id = nextId,
+                            name = name, // <--- Use the typed name!
+                            exercises = mutableListOf()
+                        )
                         workouts.add(newWorkout)
                         save()
                     },
+
                     onDeleteWorkout = { workout ->
                         workouts.remove(workout)
                         save()

@@ -27,16 +27,23 @@ import androidx.compose.runtime.*
 @Composable
 fun HomeScreen(
     workouts: List<Workout>,
-    onAddClick: () -> Unit,
-    onDeleteClick: (Workout) -> Unit, // Kept for logic, but we might hide it in a menu later
+    onAddClick: (String) -> Unit, // <--- CHANGED: Now accepts a name
+    onDeleteClick: (Workout) -> Unit,
     onWorkoutClick: (Workout) -> Unit
 ) {
+    // 1. State for the Dialog
+    var showDialog by remember { mutableStateOf(false) }
+    var newWorkoutName by remember { mutableStateOf("") }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background, // Uses your new HevyBlack
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onAddClick,
+                onClick = {
+                    newWorkoutName = "" // Reset text
+                    showDialog = true   // Show popup
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
                 shape = CircleShape
@@ -45,6 +52,8 @@ fun HomeScreen(
             }
         }
     ) { innerPadding ->
+
+
         LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
@@ -52,17 +61,8 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Custom Header (Replaces the ugly TopAppBar)
-            item {
-                HomeHeader()
-            }
-
-            // 2. Weekly Summary (The "Pro" look)
-            item {
-                WeeklySummaryCard()
-            }
-
-            // 3. Section Title
+            item { HomeHeader() }
+            item { WeeklySummaryCard() }
             item {
                 Text(
                     text = "My Routines",
@@ -72,8 +72,6 @@ fun HomeScreen(
                     modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                 )
             }
-
-            // 4. The Workout Cards
             items(workouts) { workout ->
                 WorkoutListItem(
                     workout = workout,
@@ -81,9 +79,40 @@ fun HomeScreen(
                     onDelete = { onDeleteClick(workout) }
                 )
             }
-
-            // Spacer at bottom for FAB
             item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        // 2. The Popup Dialog
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("New Routine") },
+                text = {
+                    OutlinedTextField(
+                        value = newWorkoutName,
+                        onValueChange = { newWorkoutName = it },
+                        label = { Text("Routine Name") },
+                        singleLine = true
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (newWorkoutName.isNotBlank()) {
+                                onAddClick(newWorkoutName) // <--- Send name back
+                                showDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Create")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

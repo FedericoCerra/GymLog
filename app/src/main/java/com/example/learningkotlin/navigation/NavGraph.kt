@@ -9,27 +9,24 @@ import androidx.navigation.navArgument
 import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.ui.screens.HomeScreen
 import com.example.learningkotlin.ui.screens.WorkoutDetailScreen
-
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    workouts: MutableList<Workout>,      // The Data
-    onAddWorkout: () -> Unit,            // Action: Add Button clicked
-    onDeleteWorkout: (Workout) -> Unit,  // Action: Delete clicked
-    onSave: () -> Unit                   // Action: Save to file
+    workouts: MutableList<Workout>,
+    onAddWorkout: (String) -> Unit,
+    onDeleteWorkout: (Workout) -> Unit,
+    onSave: () -> Unit
 ) {
     NavHost(
         navController = navController,
         startDestination = "home"
     ) {
-        // --- SCREEN 1: HOME ---
         composable("home") {
             HomeScreen(
                 workouts = workouts,
                 onAddClick = onAddWorkout,
                 onDeleteClick = onDeleteWorkout,
                 onWorkoutClick = { workout ->
-                    // Navigate to Detail using the ID
                     navController.navigate("detail/${workout.id}")
                 }
             )
