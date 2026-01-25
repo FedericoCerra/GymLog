@@ -74,6 +74,19 @@ fun WorkoutDetailScreen(
                     items(workout.exercises) { exercise ->
                         ExerciseCard(
                             exercise = exercise,
+
+                            // 1. Handle Updates (Refresh UI when typing/checking)
+                            onUpdate = {
+                                refreshTrigger++
+                            },
+
+                            // 2. Handle Delete (Remove from list & Refresh)
+                            onRemove = {
+                                workout.exercises.remove(exercise)
+                                refreshTrigger++
+                            },
+
+                            // 3. Handle Timer
                             onStartTimer = { duration ->
                                 timerSeconds = duration
                                 isTimerRunning = true

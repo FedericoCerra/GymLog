@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,14 +28,20 @@ fun SetRow(
     index: Int,
     set: WorkoutSet,
     onDelete: () -> Unit,
-    onCheck: (Boolean) -> Unit
+    onCheck: (Boolean) -> Unit,
+    onUpdate: () -> Unit
 ) {
-    var  weightText by remember { mutableStateOf(set.weight.toString().removeSuffix(".0")) }
-    var repsText by remember { mutableStateOf(set.reps.toString()) }
+    // 1. Initialize State (Handle 0.0 case)
+    var weightText by remember(set.weight) {
+        mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString().removeSuffix(".0"))
+    }
+    var repsText by remember(set.reps) {
+        mutableStateOf(if (set.reps == 0) "" else set.reps.toString())
+    }
+
     var isChecked by remember { mutableStateOf(set.isDone) }
     var showMenu by remember { mutableStateOf(false) }
 
-    // Logic for Green Row background (keep hardcoded green or use primaryContainer)
     val rowColor = if (isChecked) Color(0xFF4CAF50).copy(alpha = 0.2f) else Color.Transparent
 
     Row(
@@ -58,21 +65,15 @@ fun SetRow(
                     .fillMaxWidth()
                     .clickable { showMenu = true }
             )
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
                     text = { Text("Delete Set") },
-                    onClick = {
-                        onDelete()
-                        showMenu = false
-                    }
+                    onClick = { onDelete(); showMenu = false }
                 )
             }
         }
 
-        // 2. Previous
+        // 2. Previous (Hyphen)
         Text(
             text = "-",
             modifier = Modifier.weight(2f),
@@ -80,32 +81,37 @@ fun SetRow(
             textAlign = TextAlign.Center
         )
 
-        // 3. Inputs
+        // 3. Weight Input
         TableInput(
             value = weightText,
+            placeholder = "0",
             onValueChange = {
                 weightText = it
+                // UPDATE DATA SILENTLY (Don't call onUpdate() here)
                 set.weight = it.toDoubleOrNull() ?: 0.0
             },
             modifier = Modifier.weight(1.5f)
         )
 
+        // 4. Reps Input
         TableInput(
             value = repsText,
+            placeholder = "0",
             onValueChange = {
                 repsText = it
+                // UPDATE DATA SILENTLY
                 set.reps = it.toIntOrNull() ?: 0
             },
             modifier = Modifier.weight(1.5f)
         )
 
-        // 4. Checkbox
+        // 5. Checkbox
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             Surface(
                 onClick = {
                     isChecked = !isChecked
                     set.isDone = isChecked
-                    onCheck(isChecked)
+                    onCheck(isChecked) // Triggers save/timer
                 },
                 shape = RoundedCornerShape(4.dp),
                 color = if (isChecked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
@@ -119,31 +125,50 @@ fun SetRow(
     }
 }
 
-// Private helper just for this file (or move to a generic file if used elsewhere)
 @Composable
-private fun TableInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier) {
+private fun TableInput(
+    value: String,
+    placeholder: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier
+) {
+    // LAYOUT FIX: Use a fixed height box so it doesn't jump
     Box(
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+            .height(36.dp) // <--- Fixed height fixes the layout jitter
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center
     ) {
+        // Placeholder (Gray "0")
+        if (value.isEmpty()) {
+            Text(
+                text = placeholder,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // Actual Input
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             textStyle = TextStyle(
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold // Make user text slightly bolder
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next // 'Next' button instead of 'Enter'
+            ),
             singleLine = true,
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(4.dp)
-                )
-                .padding(vertical = 8.dp)
+                .padding(horizontal = 8.dp) // Internal padding
         )
     }
 }

@@ -15,6 +15,8 @@ import com.example.learningkotlin.model.WorkoutSet
 @Composable
 fun ExerciseCard(
     exercise: Exercise,
+    onUpdate: () -> Unit,      // <--- ADDED BACK: Needed for saving
+    onRemove: () -> Unit,      // <--- ADDED BACK: Needed for deleting exercises
     onStartTimer: (Int) -> Unit
 ) {
     // This forces the UI to redraw when sets change
@@ -27,13 +29,14 @@ fun ExerciseCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // 1. HEADER (Extracted)
+            // 1. HEADER
             ExerciseHeader(
                 exercise = exercise,
-                onDeleteExercise = { /* Pass callback here if needed later */ },
+                onDeleteExercise = { onRemove() }, // <--- Connect Delete
                 onTimerChange = { newTime ->
                     exercise.restTimer = newTime
                     refreshTrigger++
+                    onUpdate() // <--- Connect Save
                 }
             )
 
@@ -58,10 +61,13 @@ fun ExerciseCard(
                             onDelete = {
                                 exercise.sets.remove(set)
                                 refreshTrigger++
+                                onUpdate() // Save on delete set
                             },
                             onCheck = { isChecked ->
+                                onUpdate() // Save on check
                                 if (isChecked) onStartTimer(exercise.restTimer)
-                            }
+                            },
+                            onUpdate = { onUpdate() } // <--- Save on typing
                         )
                     }
                 }
@@ -77,6 +83,7 @@ fun ExerciseCard(
 
                     exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
                     refreshTrigger++
+                    onUpdate() // Save on add set
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -91,7 +98,7 @@ fun ExerciseCard(
     }
 }
 
-// Small helper can stay here or go to a "common" file
+// Small helper
 @Composable
 private fun HeaderLabel(text: String, modifier: Modifier) {
     Text(
