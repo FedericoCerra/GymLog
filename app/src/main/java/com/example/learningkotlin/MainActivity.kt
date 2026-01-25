@@ -34,22 +34,18 @@ class MainActivity : ComponentActivity() {
                 NavGraph(
                     navController = navController,
                     workouts = workouts,
-                    onSave = { save() },
-
-                    // CHANGED: Now we receive the 'name' from the dialog
+                    onSave = { save() }, // Or whatever your save function is called
                     onAddWorkout = { name ->
-                        val nextId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
-                        val newWorkout = Workout(
-                            id = nextId,
-                            name = name, // <--- Use the typed name!
-                            exercises = mutableListOf()
-                        )
-                        workouts.add(newWorkout)
+                        val newId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
+                        workouts.add(Workout(newId, name, mutableListOf()))
                         save()
                     },
-
                     onDeleteWorkout = { workout ->
                         workouts.remove(workout)
+                        save()                    },
+                    // THIS WILL NOW WORK
+                    onRenameWorkout = { workout, newName ->
+                        workout.name = newName
                         save()
                     }
                 )

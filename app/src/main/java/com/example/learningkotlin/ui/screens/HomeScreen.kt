@@ -23,7 +23,8 @@ fun HomeScreen(
     workouts: List<Workout>,
     onAddClick: (String) -> Unit,
     onDeleteClick: (Workout) -> Unit,
-    onWorkoutClick: (Workout) -> Unit
+    onWorkoutClick: (Workout) -> Unit,
+    onRenameClick: (Workout, String) -> Unit
 ) {
     // 1. State for the Dialog
     var showDialog by remember { mutableStateOf(false) }
@@ -75,7 +76,10 @@ fun HomeScreen(
                 WorkoutListItem(
                     workout = workout,
                     onClick = { onWorkoutClick(workout) },
-                    onDelete = { onDeleteClick(workout) }
+                    onDelete = { onDeleteClick(workout) },
+                    onRename = { newName ->
+                        onRenameClick(workout, newName) // <--- Pass it up!
+                    }
                 )
             }
 

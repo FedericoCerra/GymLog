@@ -15,20 +15,17 @@ fun NavGraph(
     workouts: MutableList<Workout>,
     onAddWorkout: (String) -> Unit,
     onDeleteWorkout: (Workout) -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onRenameWorkout: (Workout, String) -> Unit
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
+    NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
                 workouts = workouts,
                 onAddClick = onAddWorkout,
                 onDeleteClick = onDeleteWorkout,
-                onWorkoutClick = { workout ->
-                    navController.navigate("detail/${workout.id}")
-                }
+                onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
+                onRenameClick = onRenameWorkout
             )
         }
 

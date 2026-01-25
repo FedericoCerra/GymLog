@@ -1,9 +1,10 @@
-package com.example.learningkotlin.ui.components.homeScreenHelpers
+package com.example.learningkotlin.ui.components.homeScreenHelpers // Check your package!
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,10 +18,14 @@ import com.example.learningkotlin.model.Workout
 fun WorkoutListItem(
     workout: Workout,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRename: (String) -> Unit // <--- NEW PARAMETER
 ) {
-    // State to control the popup menu
     var showMenu by remember { mutableStateOf(false) }
+
+    // State for the Rename Dialog
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameText by remember { mutableStateOf("") }
 
     Card(
         onClick = onClick,
@@ -37,7 +42,6 @@ fun WorkoutListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Text Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = workout.name,
@@ -52,7 +56,7 @@ fun WorkoutListItem(
                 )
             }
 
-            // 2. The "Three Dots" Menu
+            // MENU BUTTON
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
@@ -61,17 +65,25 @@ fun WorkoutListItem(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                // The Popup
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
+                    // 1. RENAME OPTION
                     DropdownMenuItem(
-                        text = { Text("Delete Routine", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
-                        },
+                        text = { Text("Rename") },
+                        leadingIcon = { Icon(Icons.Default.Edit, "Edit") },
+                        onClick = {
+                            renameText = workout.name // Load current name
+                            showRenameDialog = true   // Show popup
+                            showMenu = false
+                        }
+                    )
+
+                    // 2. DELETE OPTION
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) },
                         onClick = {
                             onDelete()
                             showMenu = false
@@ -80,5 +92,32 @@ fun WorkoutListItem(
                 }
             }
         }
+    }
+
+    // THE RENAME DIALOG
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Rename Routine") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    label = { Text("Name") }
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (renameText.isNotBlank()) {
+                        onRename(renameText) // <--- Send new name up
+                        showRenameDialog = false
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
