@@ -27,7 +27,6 @@ import kotlinx.coroutines.delay
 fun WorkoutDetailScreen(
     workout: Workout,
     onBackClick: () -> Unit,
-    onAddExerciseClick: () -> Unit
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
@@ -58,7 +57,7 @@ fun WorkoutDetailScreen(
                 }
             )
         }
-        // DELETED: floatingActionButton = { ... }
+
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
 

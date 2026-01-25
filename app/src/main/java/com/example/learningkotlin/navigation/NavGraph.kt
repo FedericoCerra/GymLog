@@ -47,9 +47,6 @@ fun NavGraph(
                     onBackClick = {
                         onSave() // <--- Auto-save when going back
                         navController.popBackStack()
-                    },
-                    onAddExerciseClick = {
-                        // Handled internally by the screen now
                     }
                 )
             }
