@@ -53,3 +53,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+//todo use viewModels, so that data isnt messy anymore (kinda big)
+//todo implement start and finish of workout
+//todo make so that user selects exercises
+//todo database!
+//todo profiles, recap, analysis.
