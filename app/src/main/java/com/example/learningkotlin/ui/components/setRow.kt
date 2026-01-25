@@ -28,8 +28,7 @@ fun SetRow(
     index: Int,
     set: WorkoutSet,
     onDelete: () -> Unit,
-    onCheck: (Boolean) -> Unit,
-    onUpdate: () -> Unit
+    onCheck: (Boolean) -> Unit
 ) {
     // 1. Initialize State (Handle 0.0 case)
     var weightText by remember(set.weight) {
@@ -84,7 +83,6 @@ fun SetRow(
         // 3. Weight Input
         TableInput(
             value = weightText,
-            placeholder = "0",
             onValueChange = {
                 weightText = it
                 // UPDATE DATA SILENTLY (Don't call onUpdate() here)
@@ -96,7 +94,6 @@ fun SetRow(
         // 4. Reps Input
         TableInput(
             value = repsText,
-            placeholder = "0",
             onValueChange = {
                 repsText = it
                 // UPDATE DATA SILENTLY
@@ -128,9 +125,9 @@ fun SetRow(
 @Composable
 private fun TableInput(
     value: String,
-    placeholder: String,
     onValueChange: (String) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    placeholder: String = "0"
 ) {
     // LAYOUT FIX: Use a fixed height box so it doesn't jump
     Box(

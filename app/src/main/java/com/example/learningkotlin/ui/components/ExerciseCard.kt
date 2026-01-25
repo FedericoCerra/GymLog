@@ -66,8 +66,7 @@ fun ExerciseCard(
                             onCheck = { isChecked ->
                                 onUpdate() // Save on check
                                 if (isChecked) onStartTimer(exercise.restTimer)
-                            },
-                            onUpdate = { onUpdate() } // <--- Save on typing
+                            }
                         )
                     }
                 }
