@@ -1,5 +1,7 @@
 package com.example.learningkotlin.model
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class WorkoutSet(
     val id: Int,
     var weight: Double,
