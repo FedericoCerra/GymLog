@@ -7,25 +7,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.model.WorkoutSet
-import com.example.learningkotlin.ui.components.BottomTimerBar
-import com.example.learningkotlin.ui.components.ExerciseCard
+import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.BottomTimerBar
+import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.ExerciseCard
+import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.WorkoutHeaderStats
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutDetailScreen(
     workout: Workout,
+    onStartWorkout: () -> Unit,
+    onFinishWorkout: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
@@ -54,6 +55,17 @@ fun WorkoutDetailScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
+                },
+                actions = {
+                    if (workout.isActive) {
+                        TextButton(onClick = { onFinishWorkout(); refreshTrigger++ }) {
+                            Text("FINISH", color = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        Button(onClick = { onStartWorkout(); refreshTrigger++ }) {
+                            Text("START")
+                        }
+                    }
                 }
             )
         }
@@ -70,23 +82,26 @@ fun WorkoutDetailScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // A. The Exercises
+                    // A. Workout Stats
+                    item {
+                        WorkoutHeaderStats(
+                            timerValue = if (isTimerRunning) "%02d:%02d".format(timerSeconds / 60, timerSeconds % 60) else "00:00",
+                            timerColor = if (isTimerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            onTimerClick = { /* Maybe open timer settings */ },
+                            volume = "0 kg", // TODO: Calculate actual volume
+                            sets = workout.exercises.sumOf { it.sets.size }.toString()
+                        )
+                    }
+
+                    // B. The Exercises
                     items(workout.exercises) { exercise ->
                         ExerciseCard(
                             exercise = exercise,
-
-                            // 1. Handle Updates (Refresh UI when typing/checking)
-                            onUpdate = {
-                                refreshTrigger++
-                            },
-
-                            // 2. Handle Delete (Remove from list & Refresh)
+                            onUpdate = { refreshTrigger++ },
                             onRemove = {
                                 workout.exercises.remove(exercise)
                                 refreshTrigger++
                             },
-
-                            // 3. Handle Timer
                             onStartTimer = { duration ->
                                 timerSeconds = duration
                                 isTimerRunning = true
@@ -94,15 +109,13 @@ fun WorkoutDetailScreen(
                         )
                     }
 
-                    // B. THE NEW "ADD EXERCISE" BUTTON (Inside the list)
+                    // C. ADD EXERCISE BUTTON
                     item {
                         Button(
                             onClick = { showDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), // Subtle Blue
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 contentColor = MaterialTheme.colorScheme.primary
                             ),
                             shape = RoundedCornerShape(8.dp),
@@ -114,31 +127,25 @@ fun WorkoutDetailScreen(
                         }
                     }
 
-                    // Spacer so the bottom timer doesn't cover the last button
                     item { Spacer(modifier = Modifier.height(100.dp)) }
                 }
             }
 
-            // 2. The Bottom Timer Popup (Floats on top)
+            // 2. The Bottom Timer Popup
             if (isTimerRunning) {
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                        .padding(innerPadding)
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).padding(innerPadding)
                 ) {
                     BottomTimerBar(
                         secondsRemaining = timerSeconds,
                         onSkip = { isTimerRunning = false },
                         onAdd15 = { timerSeconds += 15 },
-                        onSub15 = {
-                            if (timerSeconds > 15) timerSeconds -= 15 else timerSeconds = 0
-                        }
+                        onSub15 = { if (timerSeconds > 15) timerSeconds -= 15 else timerSeconds = 0 }
                     )
                 }
             }
 
-            // 3. The Dialog
+            // 3. New Exercise Dialog
             if (showDialog) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },

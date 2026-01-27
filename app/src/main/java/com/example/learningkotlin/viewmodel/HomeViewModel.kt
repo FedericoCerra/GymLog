@@ -32,6 +32,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
+    fun startWorkout(workout: Workout) {
+        val target = workouts.find { it.id == workout.id }
+        target?.let {
+            it.isActive = true
+            it.startTime = System.currentTimeMillis()
+            save()
+        }
+    }
+
+    fun finishWorkout(workout: Workout) {
+        val target = workouts.find { it.id == workout.id }
+        target?.let {
+            it.isActive = false
+            it.startTime = null
+            save()
+        }
+    }
+
     fun onDetailScreenExit() {
         // This is where we call save when exiting the detail screen.
         // It saves any changes made to the selected workout (e.g., changes to exercises)

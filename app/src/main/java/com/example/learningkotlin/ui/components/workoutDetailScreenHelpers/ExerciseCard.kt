@@ -1,4 +1,4 @@
-package com.example.learningkotlin.ui.components
+package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,25 +52,27 @@ fun ExerciseCard(
             }
 
             // 3. SETS LIST
-            key(refreshTrigger) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    exercise.sets.forEachIndexed { index, set ->
-                        SetRow(
-                            index = index + 1,
-                            set = set,
-                            onDelete = {
-                                exercise.sets.remove(set)
-                                refreshTrigger++
-                                onUpdate() // Save on delete set
-                            },
-                            onCheck = { isChecked ->
-                                onUpdate() // Save on check
-                                if (isChecked) onStartTimer(exercise.restTimer)
-                            }
-                        )
-                    }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                exercise.sets.forEachIndexed { index, set ->
+                    SetRow(
+                        index = index + 1,
+                        set = set,
+                        onDelete = {
+                            exercise.sets.remove(set)
+                            onRemove() // This one NEEDS to refresh (item removed)
+                        },
+                        onCheck = { isChecked ->
+                            // FIX: Don't call onUpdate() here if it causes a refresh!
+                            // The data is already updated inside SetRow.
+                            // We will save it to disk when we press "Back".
+
+                            if (isChecked) onStartTimer(exercise.restTimer)
+                        }
+                    )
                 }
             }
+
 
             // 4. ADD BUTTON
             Button(

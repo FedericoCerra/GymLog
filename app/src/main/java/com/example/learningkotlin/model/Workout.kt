@@ -5,5 +5,7 @@ import kotlinx.serialization.Serializable
 data class Workout(
     val id: Int,
     var name: String,
-    val exercises: MutableList<Exercise> = mutableListOf() // Starts empty
+    val exercises: MutableList<Exercise> = mutableListOf(),
+    var isActive: Boolean = false,
+    var startTime: Long? = null
 )

@@ -1,4 +1,4 @@
-package com.example.learningkotlin.ui.components
+package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

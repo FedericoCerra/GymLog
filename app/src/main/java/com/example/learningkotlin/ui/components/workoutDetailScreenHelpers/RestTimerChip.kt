@@ -1,4 +1,4 @@
-package com.example.learningkotlin.ui.components
+package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background

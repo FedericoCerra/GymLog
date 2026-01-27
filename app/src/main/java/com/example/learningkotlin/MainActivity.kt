@@ -15,15 +15,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             LearningKotlinTheme(dynamicColor = false) {
                 val navController = rememberNavController()
-
-                // State and logic are now managed in ViewModels
+                
+                // NavGraph now handles the ViewModel initialization internally
                 NavGraph(navController = navController)
             }
         }
     }
 }
 
-//todo use viewModels, so that data isnt messy anymore (kinda big)
 //todo implement start and finish of workout
 //todo make so that user selects exercises
 //todo database!

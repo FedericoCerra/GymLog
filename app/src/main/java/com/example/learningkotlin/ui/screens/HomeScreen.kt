@@ -13,20 +13,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.learningkotlin.model.Workout
-
+import com.example.learningkotlin.viewmodel.HomeViewModel // Import your ViewModel
 import com.example.learningkotlin.ui.components.homeScreenHelpers.HomeHeader
 import com.example.learningkotlin.ui.components.homeScreenHelpers.WeeklySummaryCard
 import com.example.learningkotlin.ui.components.homeScreenHelpers.WorkoutListItem
 
 @Composable
 fun HomeScreen(
-    workouts: List<Workout>,
-    onAddClick: (String) -> Unit,
-    onDeleteClick: (Workout) -> Unit,
-    onWorkoutClick: (Workout) -> Unit,
-    onRenameClick: (Workout, String) -> Unit
+    viewModel: HomeViewModel,          // <--- 1. We now accept the Logic Toolbox
+    onWorkoutClick: (Workout) -> Unit  // <--- 2. We still need this for Navigation
 ) {
-    // 1. State for the Dialog
+    // A. Read data directly from ViewModel
+    val workouts = viewModel.workouts
+
+    // B. Local UI State (Popup visibility)
     var showDialog by remember { mutableStateOf(false) }
     var newWorkoutName by remember { mutableStateOf("") }
 
@@ -36,8 +36,8 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    newWorkoutName = "" // Reset text
-                    showDialog = true   // Show popup
+                    newWorkoutName = ""
+                    showDialog = true
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
@@ -76,10 +76,10 @@ fun HomeScreen(
                 WorkoutListItem(
                     workout = workout,
                     onClick = { onWorkoutClick(workout) },
-                    onDelete = { onDeleteClick(workout) },
-                    onRename = { newName ->
-                        onRenameClick(workout, newName) // <--- Pass it up!
-                    }
+
+                    // C. Call ViewModel functions directly
+                    onDelete = { viewModel.deleteWorkout(workout) },
+                    onRename = { newName -> viewModel.renameWorkout(workout, newName) }
                 )
             }
 
@@ -104,7 +104,8 @@ fun HomeScreen(
                     Button(
                         onClick = {
                             if (newWorkoutName.isNotBlank()) {
-                                onAddClick(newWorkoutName)
+                                // D. Call ViewModel to add
+                                viewModel.addWorkout(newWorkoutName)
                                 showDialog = false
                             }
                         }

@@ -6,47 +6,40 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.lifecycle.viewmodel.compose.viewModel // Import for viewModel()
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.learningkotlin.ui.screens.HomeScreen
 import com.example.learningkotlin.ui.screens.WorkoutDetailScreen
-import com.example.learningkotlin.viewmodel.HomeViewModel // Import the new ViewModel
+import com.example.learningkotlin.viewmodel.HomeViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
 ) {
-    // Instantiate HomeViewModel, which will manage the workout data
+    // 1. Initialize ViewModel here
     val homeViewModel: HomeViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
-                workouts = homeViewModel.workouts,
-                onAddClick = homeViewModel::addWorkout,
-                onDeleteClick = homeViewModel::deleteWorkout,
-                onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
-                onRenameClick = homeViewModel::renameWorkout
+                viewModel = homeViewModel,
+                onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") }
             )
         }
 
-        // --- SCREEN 2: DETAIL ---
         composable(
             route = "detail/{workoutId}",
             arguments = listOf(navArgument("workoutId") { type = NavType.IntType })
         ) { backStackEntry ->
-            // 1. Get ID from URL
             val workoutId = backStackEntry.arguments?.getInt("workoutId")
-
-            // 2. Find the specific workout object
-            // Access workouts from the ViewModel
             val selectedWorkout = homeViewModel.workouts.find { it.id == workoutId }
 
-            // 3. Show Screen
             if (selectedWorkout != null) {
                 WorkoutDetailScreen(
                     workout = selectedWorkout,
+                    onStartWorkout = { homeViewModel.startWorkout(selectedWorkout) },
+                    onFinishWorkout = { homeViewModel.finishWorkout(selectedWorkout) },
                     onBackClick = {
-                        homeViewModel.onDetailScreenExit() // <--- Call save function on ViewModel
+                        homeViewModel.onDetailScreenExit()
                         navController.popBackStack()
                     }
                 )
