@@ -13,7 +13,6 @@ object ExerciseLibrary {
         
         try {
             val assets = context.assets
-            // List all files/folders in the "exercises" directory
             val files = assets.list("exercises") ?: emptyArray()
             
             val loadedDefinitions = mutableListOf<ExerciseDefinition>()
@@ -32,7 +31,6 @@ object ExerciseLibrary {
                             loadedDefinitions.add(def)
                         }
                     } catch (e: Exception) {
-                        // Skip broken files
                         e.printStackTrace()
                     }
                 }
@@ -42,7 +40,6 @@ object ExerciseLibrary {
             
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback
             definitions = listOf(
                 ExerciseDefinition(id = "bench_press", name = "Bench Press (Barbell)", primaryMuscles = listOf("chest")),
                 ExerciseDefinition(id = "squat", name = "Squat (Barbell)", primaryMuscles = listOf("quads"))
@@ -51,4 +48,8 @@ object ExerciseLibrary {
     }
 
     fun getDefinitions(): List<ExerciseDefinition> = definitions.sortedBy { it.name }
+
+    fun getAllMuscles(): List<String> {
+        return definitions.flatMap { it.primaryMuscles }.distinct().sorted()
+    }
 }

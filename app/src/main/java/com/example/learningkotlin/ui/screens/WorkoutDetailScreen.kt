@@ -1,24 +1,30 @@
 package com.example.learningkotlin.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.Exercise
+import com.example.learningkotlin.model.ExerciseDefinition
 import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.model.WorkoutSet
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.ExerciseCard
@@ -39,6 +45,11 @@ fun WorkoutDetailScreen(
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedMuscle by remember { mutableStateOf<String?>(null) }
+    
+    // Instructions Dialog State
+    var showInstructionsDialog by remember { mutableStateOf(false) }
+    var exerciseForInstructions by remember { mutableStateOf<ExerciseDefinition?>(null) }
 
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
 
@@ -140,6 +151,13 @@ fun WorkoutDetailScreen(
                         },
                         onStartTimer = { duration ->
                             viewModel.startRestTimer(duration)
+                        },
+                        onInfoClick = {
+                            val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
+                            if (def != null) {
+                                exerciseForInstructions = def
+                                showInstructionsDialog = true
+                            }
                         }
                     )
                 }
@@ -148,6 +166,7 @@ fun WorkoutDetailScreen(
                     Button(
                         onClick = { 
                             searchQuery = "" 
+                            selectedMuscle = null
                             showDialog = true 
                         },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -181,11 +200,35 @@ fun WorkoutDetailScreen(
                                 leadingIcon = { Icon(Icons.Default.Search, null) },
                                 singleLine = true
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Muscle Filter Chips
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = selectedMuscle == null,
+                                        onClick = { selectedMuscle = null },
+                                        label = { Text("All") }
+                                    )
+                                }
+                                items(ExerciseLibrary.getAllMuscles()) { muscle ->
+                                    FilterChip(
+                                        selected = selectedMuscle == muscle,
+                                        onClick = { selectedMuscle = muscle },
+                                        label = { Text(muscle.replaceFirstChar { it.uppercase() }) }
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
                             
                             val filteredExercises = ExerciseLibrary.getDefinitions().filter {
-                                it.name.contains(searchQuery, ignoreCase = true) ||
-                                it.primaryMuscles.any { muscle -> muscle.contains(searchQuery, ignoreCase = true) }
+                                (it.name.contains(searchQuery, ignoreCase = true) ||
+                                it.primaryMuscles.any { muscle -> muscle.contains(searchQuery, ignoreCase = true) }) &&
+                                (selectedMuscle == null || it.primaryMuscles.contains(selectedMuscle))
                             }
 
                             LazyColumn(modifier = Modifier.height(400.dp)) {
@@ -194,6 +237,26 @@ fun WorkoutDetailScreen(
                                         headlineContent = { Text(def.name, fontWeight = FontWeight.Bold) },
                                         supportingContent = { 
                                             Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = Color.Gray)
+                                        },
+                                        leadingContent = {
+                                            if (def.images.isNotEmpty()) {
+                                                AsyncImage(
+                                                    model = "file:///android_asset/exercises/${def.images[0]}",
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(50.dp).clip(RoundedCornerShape(4.dp)),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(modifier = Modifier.size(50.dp).background(Color.DarkGray, RoundedCornerShape(4.dp)))
+                                            }
+                                        },
+                                        trailingContent = {
+                                            IconButton(onClick = {
+                                                exerciseForInstructions = def
+                                                showInstructionsDialog = true
+                                            }) {
+                                                Icon(Icons.Default.Info, "Instructions", tint = MaterialTheme.colorScheme.primary)
+                                            }
                                         },
                                         modifier = Modifier.clickable {
                                             val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
@@ -215,6 +278,58 @@ fun WorkoutDetailScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                    }
+                )
+            }
+            
+            // Instructions Dialog
+            if (showInstructionsDialog && exerciseForInstructions != null) {
+                val exercise = exerciseForInstructions!!
+                AlertDialog(
+                    onDismissRequest = { showInstructionsDialog = false },
+                    title = { Text(exercise.name, fontWeight = FontWeight.Bold) },
+                    text = {
+                        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)) {
+                            // Images Row
+                            if (exercise.images.isNotEmpty()) {
+                                item {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        exercise.images.take(2).forEach { imgPath ->
+                                            AsyncImage(
+                                                model = "file:///android_asset/exercises/$imgPath",
+                                                contentDescription = null,
+                                                modifier = Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(8.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+                            }
+                            
+                            // Details
+                            item {
+                                Text("Equipment: ${exercise.equipment?.replaceFirstChar { it.uppercase() } ?: "None"}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                Text("Level: ${exercise.level?.replaceFirstChar { it.uppercase() } ?: "Unknown"}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Instructions", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            
+                            items(exercise.instructions) { instruction ->
+                                Text(
+                                    text = "• $instruction",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showInstructionsDialog = false }) { Text("Got it") }
                     }
                 )
             }

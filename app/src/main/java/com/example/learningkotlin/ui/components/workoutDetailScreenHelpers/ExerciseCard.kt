@@ -16,12 +16,12 @@ import com.example.learningkotlin.model.WorkoutSet
 fun ExerciseCard(
     exercise: Exercise,
     isWorkoutActive: Boolean,
-    parentRefreshTrigger: Int, // <--- Watches parent state for stats/logic
+    parentRefreshTrigger: Int,
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
-    onStartTimer: (Int) -> Unit
+    onStartTimer: (Int) -> Unit,
+    onInfoClick: () -> Unit // <--- Added this parameter
 ) {
-    // Local trigger for adding/removing sets instantly without lag
     var localSetsTrigger by remember { mutableIntStateOf(0) }
 
     Card(
@@ -39,7 +39,8 @@ fun ExerciseCard(
                     exercise.restTimer = newTime
                     localSetsTrigger++
                     onUpdate()
-                }
+                },
+                onInfoClick = onInfoClick // <--- Pass it to the header
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -57,11 +58,9 @@ fun ExerciseCard(
 
             // 3. SETS LIST
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // We combine triggers to ensure we redraw when sets are added OR parent is refreshed
-                val combinedTrigger = localSetsTrigger + parentRefreshTrigger
+                val trigger = localSetsTrigger + parentRefreshTrigger
                 
                 exercise.sets.forEachIndexed { index, set ->
-                    // Use a stable key for each set row to prevent flickering/lag
                     key(set.id) {
                         SetRow(
                             index = index + 1,
@@ -73,7 +72,7 @@ fun ExerciseCard(
                                 onUpdate()
                             },
                             onCheck = { isChecked ->
-                                onUpdate() // Updates parent stats
+                                onUpdate() 
                                 if (isChecked) onStartTimer(exercise.restTimer)
                             }
                         )
@@ -90,7 +89,7 @@ fun ExerciseCard(
                     val nextId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
 
                     exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
-                    localSetsTrigger++ // Instant UI update for the new set
+                    localSetsTrigger++
                     onUpdate()
                 },
                 colors = ButtonDefaults.buttonColors(
