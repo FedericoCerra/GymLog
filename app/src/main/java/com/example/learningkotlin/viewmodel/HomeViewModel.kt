@@ -8,7 +8,6 @@ import com.example.learningkotlin.model.Workout
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // 1. STATE: The list of workouts
-    // Use applicationContext for file access, as ViewModels live longer than Activities/Composables
     val workouts = WorkoutManager.loadWorkouts(application.applicationContext).toMutableStateList()
 
     // 2. HELPER: Save to file
@@ -27,12 +26,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun renameWorkout(workout: Workout, newName: String) {
-        // Find the workout in the state list and update its name
         workouts.find { it.id == workout.id }?.name = newName
         save()
     }
 
     fun startWorkout(workout: Workout) {
+        // IMPROVEMENT: Ensure only ONE workout is active at a time
+        workouts.forEach { 
+            if (it.isActive) {
+                it.isActive = false
+                it.startTime = null
+            }
+        }
+
         val target = workouts.find { it.id == workout.id }
         target?.let {
             it.isActive = true
@@ -51,8 +57,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onDetailScreenExit() {
-        // This is where we call save when exiting the detail screen.
-        // It saves any changes made to the selected workout (e.g., changes to exercises)
         save()
     }
 }

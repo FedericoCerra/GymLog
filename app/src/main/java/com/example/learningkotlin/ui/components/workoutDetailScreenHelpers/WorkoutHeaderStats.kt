@@ -15,9 +15,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun WorkoutHeaderStats(
-    timerValue: String,        // Changed from 'duration' to be dynamic
-    timerColor: Color,         // To show Blue when running
-    onTimerClick: () -> Unit,  // The click action
+    workoutDuration: String,
+    restTimerValue: String,
+    restTimerColor: Color,
+    onRestTimerClick: () -> Unit,
     volume: String,
     sets: String
 ) {
@@ -25,21 +26,24 @@ fun WorkoutHeaderStats(
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. The Timer (Clickable)
+        // 1. Workout Duration
+        StatItem("Duration", workoutDuration)
+
+        // 2. The Rest Timer (Clickable)
         StatItem(
-            label = "Rest Timer", // Renamed for clarity
-            value = timerValue,
-            valueColor = timerColor,
+            label = "Rest Timer",
+            value = restTimerValue,
+            valueColor = restTimerColor,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .clickable { onTimerClick() } // <--- The magic click listener
-                .padding(4.dp) // Touch target padding
+                .clickable { onRestTimerClick() }
+                .padding(4.dp)
         )
 
-        // 2. Volume
+        // 3. Volume
         StatItem("Volume", volume)
 
-        // 3. Sets
+        // 4. Sets
         StatItem("Sets", sets)
     }
 }
@@ -57,7 +61,7 @@ fun StatItem(
             text = value,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = valueColor // Allows the timer to turn blue
+            color = valueColor
         )
     }
 }
