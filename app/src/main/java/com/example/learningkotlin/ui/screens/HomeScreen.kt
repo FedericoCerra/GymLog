@@ -23,6 +23,7 @@ import com.example.learningkotlin.ui.components.homeScreenHelpers.WorkoutListIte
 fun HomeScreen(
     viewModel: HomeViewModel,
     onWorkoutClick: (Workout) -> Unit,
+    onSummaryClick: () -> Unit,
     bottomBarPadding: Dp = 0.dp
 ) {
     val workouts = viewModel.workouts
@@ -38,7 +39,6 @@ fun HomeScreen(
                     newWorkoutName = ""
                     showDialog = true
                 },
-                // Positioned to overlap the nav bar slightly for a pro look
                 modifier = Modifier.padding(bottom = if (bottomBarPadding > 0.dp) bottomBarPadding - 24.dp else 16.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
@@ -56,7 +56,12 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { HomeHeader() }
-            item { WeeklySummaryCard() }
+            item { 
+                WeeklySummaryCard(
+                    history = viewModel.history,
+                    onClick = onSummaryClick
+                ) 
+            }
             item {
                 Text(
                     text = "My Routines",

@@ -45,28 +45,30 @@ fun NavGraph(
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute in listOf("home", "history", "detail/{workoutId}")
 
+    val barColor = Color(0xFF0F0F0F)
     val density = LocalDensity.current
     val systemNavBarHeight = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
     val customBarHeight = 56.dp
-    val totalBottomOffset = if (showBottomBar) customBarHeight + systemNavBarHeight else 0.dp
+    val totalBottomAreaHeight = customBarHeight + systemNavBarHeight
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background) 
+        .background(Color.Black)
     ) {
         Scaffold(
             containerColor = Color.Transparent, 
         ) { innerPadding ->
             Box(modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
+                .padding(top = innerPadding.calculateTopPadding()) 
             ) {
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
                         HomeScreen(
                             viewModel = homeViewModel,
                             onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
-                            bottomBarPadding = totalBottomOffset
+                            onSummaryClick = { navController.navigate("history") }, // Navigate to History tab
+                            bottomBarPadding = if (showBottomBar) totalBottomAreaHeight else 0.dp
                         )
                     }
 
@@ -134,7 +136,7 @@ fun NavGraph(
                 if (homeViewModel.isRestTimerRunning) {
                     Box(modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = totalBottomOffset + 8.dp) 
+                        .padding(bottom = totalBottomAreaHeight + 8.dp) 
                     ) {
                         BottomTimerBar(
                             secondsRemaining = homeViewModel.restTimerSeconds,
@@ -148,49 +150,48 @@ fun NavGraph(
         }
 
         if (showBottomBar) {
-            Surface(
-                color = Color(0xFF0F0F0F),
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .height(totalBottomAreaHeight)
+                    .align(Alignment.BottomCenter)
+                    .background(barColor)
             ) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(customBarHeight),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val isHomeSelected = currentRoute == "home" || currentRoute?.startsWith("detail/") == true
-                        CustomBottomNavItem(
-                            icon = Icons.Default.FitnessCenter,
-                            label = "Routines",
-                            selected = isHomeSelected,
-                            onClick = {
-                                navController.navigate("home") {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(customBarHeight)
+                        .align(Alignment.TopCenter),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val isHomeSelected = currentRoute == "home" || currentRoute?.startsWith("detail/") == true
+                    CustomBottomNavItem(
+                        icon = Icons.Default.FitnessCenter,
+                        label = "Routines",
+                        selected = isHomeSelected,
+                        onClick = {
+                            navController.navigate("home") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
+                        }
+                    )
 
-                        val isHistorySelected = currentRoute == "history"
-                        CustomBottomNavItem(
-                            icon = Icons.Default.List,
-                            label = "History",
-                            selected = isHistorySelected,
-                            onClick = {
-                                navController.navigate("history") {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                    val isHistorySelected = currentRoute == "history"
+                    CustomBottomNavItem(
+                        icon = Icons.Default.List,
+                        label = "History",
+                        selected = isHistorySelected,
+                        onClick = {
+                            navController.navigate("history") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                    }
-                    Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                        }
+                    )
                 }
             }
         }
