@@ -47,7 +47,6 @@ fun NavGraph(
 
     val barColor = Color(0xFF0F0F0F)
     val density = LocalDensity.current
-    // Get exact height of the system navigation area
     val systemBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val customBarHeight = 56.dp
     val totalBottomOffset = if (showBottomBar) customBarHeight + systemBottomPadding else 0.dp
@@ -114,7 +113,8 @@ fun NavGraph(
                         if (lastWorkout != null) {
                             WorkoutRecapScreen(
                                 finishedWorkout = lastWorkout,
-                                onClose = { navController.popBackStack("home", inclusive = false) }
+                                onClose = { navController.popBackStack("home", inclusive = false) },
+                                onSave = { updated -> homeViewModel.updateFinishedWorkout(updated) }
                             )
                         } else {
                             LaunchedEffect(Unit) { navController.popBackStack("home", inclusive = false) }
@@ -128,7 +128,8 @@ fun NavGraph(
                                 onClose = {
                                     navController.popBackStack()
                                     selectedHistoryWorkout = null
-                                }
+                                },
+                                onSave = { updated -> homeViewModel.updateFinishedWorkout(updated) }
                             )
                         }
                     }
@@ -151,7 +152,6 @@ fun NavGraph(
             }
         }
 
-        // Custom Bottom Bar: Spans the entire bottom area for uniform color
         if (showBottomBar) {
             Box(
                 modifier = Modifier

@@ -6,9 +6,9 @@ import kotlinx.serialization.Serializable
 data class FinishedWorkout(
     val id: Int,
     val name: String,
-    val date: Long, // timestamp
-    val durationSeconds: Long,
+    var date: Long, // Changed to var to allow modification
+    var durationSeconds: Long, // Changed to var to allow modification
     val totalVolume: Double,
     val totalSets: Int,
-    val exercises: List<Exercise> // Copy of exercises as they were at finish
+    val exercises: List<Exercise>
 )

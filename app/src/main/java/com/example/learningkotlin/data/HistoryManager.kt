@@ -9,7 +9,6 @@ import java.io.File
 object HistoryManager {
     private const val FILE_NAME = "workout_history.json"
     
-    // Modern JSON configuration to handle model changes gracefully
     private val json = Json { 
         ignoreUnknownKeys = true 
         coerceInputValues = true
@@ -20,6 +19,15 @@ object HistoryManager {
         val history = loadHistory(context).toMutableList()
         history.add(0, workout)
         saveHistory(context, history)
+    }
+
+    fun updateWorkout(context: Context, updatedWorkout: FinishedWorkout) {
+        val history = loadHistory(context).toMutableList()
+        val index = history.indexOfFirst { it.id == updatedWorkout.id }
+        if (index != -1) {
+            history[index] = updatedWorkout
+            saveHistory(context, history)
+        }
     }
 
     fun deleteWorkout(context: Context, workoutId: Int) {

@@ -11,8 +11,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.data.HistoryManager
 import com.example.learningkotlin.data.WorkoutManager
+import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.Workout
+import com.example.learningkotlin.model.WorkoutSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,7 +35,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // 2. TIMER STATE (Now global to the app)
     var restTimerSeconds by mutableIntStateOf(0)
         private set
-    var initialRestTimerSeconds by mutableIntStateOf(0) // Track starting time for progress bar
+    var initialRestTimerSeconds by mutableIntStateOf(0) 
         private set
     var isRestTimerRunning by mutableStateOf(false)
         private set
@@ -61,6 +63,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun renameWorkout(workout: Workout, newName: String) {
         workouts.find { it.id == workout.id }?.name = newName
         save()
+    }
+
+    fun updateFinishedWorkout(updatedWorkout: FinishedWorkout) {
+        val index = history.indexOfFirst { it.id == updatedWorkout.id }
+        if (index != -1) {
+            history[index] = updatedWorkout
+            HistoryManager.updateWorkout(getApplication(), updatedWorkout)
+        }
     }
 
     fun deleteFinishedWorkout(workoutId: Int) {
@@ -150,13 +160,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun add15Seconds() {
         restTimerSeconds += 15
-        initialRestTimerSeconds += 15 // Increase total so progress looks right
+        initialRestTimerSeconds += 15 
     }
 
     fun sub15Seconds() {
         if (restTimerSeconds > 15) {
             restTimerSeconds -= 15
-            // Keep initial the same or adjust? Usually best to keep it so bar just jumps forward
         } else {
             skipTimer()
         }

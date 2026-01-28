@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
@@ -86,7 +87,8 @@ fun RestTimerChip(
                     
                     CircularTimePicker(
                         initialSeconds = tempSeconds,
-                        onSecondsChange = { tempSeconds = it }
+                        onSecondsChange = { tempSeconds = it },
+                        maxSeconds = 300 // 5 minutes for REST timer
                     )
 
                     Spacer(modifier = Modifier.height(32.dp))
@@ -108,12 +110,12 @@ fun RestTimerChip(
 @Composable
 fun CircularTimePicker(
     initialSeconds: Int,
-    onSecondsChange: (Int) -> Unit
+    onSecondsChange: (Int) -> Unit,
+    maxSeconds: Int = 300
 ) {
-    val maxSeconds = 300
     val focusManager = LocalFocusManager.current
+    val isWorkoutDuration = maxSeconds > 600 // Logic to check if we're picking workout time or rest time
     
-    // Detect if keyboard is hidden to clear focus
     val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     LaunchedEffect(isKeyboardVisible) {
         if (!isKeyboardVisible) {
@@ -121,10 +123,19 @@ fun CircularTimePicker(
         }
     }
     
-    var minutesText by remember(initialSeconds) { mutableStateOf((initialSeconds / 60).toString()) }
-    var secondsText by remember(initialSeconds) { mutableStateOf((initialSeconds % 60).toString().padStart(2, '0')) }
+    // Determine labels based on usage
+    val topLabel = if (isWorkoutDuration) (initialSeconds / 3600).toString() else (initialSeconds / 60).toString()
+    val bottomLabel = if (isWorkoutDuration) ((initialSeconds % 3600) / 60).toString().padStart(2, '0') else (initialSeconds % 60).toString().padStart(2, '0')
+    val subText = if (isWorkoutDuration) "HH:MM" else "MM:SS"
+
+    var topText by remember(initialSeconds) { mutableStateOf(topLabel) }
+    var bottomText by remember(initialSeconds) { mutableStateOf(bottomLabel) }
     
-    val currentTotalSeconds = (minutesText.toIntOrNull() ?: 0) * 60 + (secondsText.toIntOrNull() ?: 0)
+    val currentTotalSeconds = if (isWorkoutDuration) {
+        (topText.toIntOrNull() ?: 0) * 3600 + (bottomText.toIntOrNull() ?: 0) * 60
+    } else {
+        (topText.toIntOrNull() ?: 0) * 60 + (bottomText.toIntOrNull() ?: 0)
+    }
     
     var angle by remember(currentTotalSeconds) { 
         val bounded = currentTotalSeconds.coerceIn(0, maxSeconds)
@@ -148,14 +159,19 @@ fun CircularTimePicker(
                         if (normalizedAngle < 0) normalizedAngle += 360f
                         
                         val newSeconds = ((normalizedAngle / 360f) * maxSeconds).toInt()
-                        val snappedSeconds = ((newSeconds + 2) / 5) * 5
+                        // Snapping: 5 mins for workout, 5 seconds for rest
+                        val step = if (isWorkoutDuration) 300 else 5
+                        val snappedSeconds = (newSeconds / step) * step
                         
                         if (snappedSeconds in 0..maxSeconds) {
                             angle = newAngle
-                            val m = snappedSeconds / 60
-                            val s = snappedSeconds % 60
-                            minutesText = m.toString()
-                            secondsText = s.toString().padStart(2, '0')
+                            if (isWorkoutDuration) {
+                                topText = (snappedSeconds / 3600).toString()
+                                bottomText = ((snappedSeconds % 3600) / 60).toString().padStart(2, '0')
+                            } else {
+                                topText = (snappedSeconds / 60).toString()
+                                bottomText = (snappedSeconds % 60).toString().padStart(2, '0')
+                            }
                             onSecondsChange(snappedSeconds)
                         }
                     }
@@ -201,11 +217,13 @@ fun CircularTimePicker(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BasicTextField(
-                    value = minutesText,
+                    value = topText,
                     onValueChange = {
-                        if (it.length <= 1 && it.all { c -> c.isDigit() }) {
-                            minutesText = it
-                            val newTotal = (it.toIntOrNull() ?: 0) * 60 + (secondsText.toIntOrNull() ?: 0)
+                        if (it.length <= 2 && it.all { c -> c.isDigit() }) {
+                            topText = it
+                            val multiplier = if (isWorkoutDuration) 3600 else 60
+                            val newTotal = (it.toIntOrNull() ?: 0) * multiplier + 
+                                           (bottomText.toIntOrNull() ?: 0) * (if (isWorkoutDuration) 60 else 1)
                             onSecondsChange(newTotal.coerceIn(0, maxSeconds))
                         }
                     },
@@ -215,25 +233,22 @@ fun CircularTimePicker(
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center
                     ),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Next) }
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Next) }),
                     cursorBrush = SolidColor(primaryColor),
-                    modifier = Modifier.width(45.dp)
+                    modifier = Modifier.width(if (topText.length > 1) 60.dp else 45.dp)
                 )
                 
                 Text(":", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black)
                 
                 BasicTextField(
-                    value = secondsText,
+                    value = bottomText,
                     onValueChange = {
                         if (it.length <= 2 && it.all { c -> c.isDigit() }) {
-                            secondsText = it
-                            val newTotal = (minutesText.toIntOrNull() ?: 0) * 60 + (it.toIntOrNull() ?: 0)
+                            bottomText = it
+                            val multiplier = if (isWorkoutDuration) 3600 else 60
+                            val newTotal = (topText.toIntOrNull() ?: 0) * multiplier + 
+                                           (it.toIntOrNull() ?: 0) * (if (isWorkoutDuration) 60 else 1)
                             onSecondsChange(newTotal.coerceIn(0, maxSeconds))
                         }
                     },
@@ -243,19 +258,14 @@ fun CircularTimePicker(
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center
                     ),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { focusManager.clearFocus() }
-                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     cursorBrush = SolidColor(primaryColor),
                     modifier = Modifier.width(60.dp)
                 )
             }
             Text(
-                text = "MM:SS",
+                text = subText,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
