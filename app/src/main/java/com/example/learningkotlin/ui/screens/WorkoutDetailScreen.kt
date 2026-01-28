@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun WorkoutDetailScreen(
     workout: Workout,
+    isAnyOtherWorkoutActive: Boolean, // <--- Added this parameter
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
     onBackClick: () -> Unit,
@@ -69,6 +70,17 @@ fun WorkoutDetailScreen(
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
+    // CALCULATIONS FOR STATS
+    val totalSets = workout.exercises.sumOf { it.sets.size }
+    val completedSets = workout.exercises.sumOf { it.sets.count { s -> s.isDone } }
+    
+    val totalVolume = workout.exercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } }
+    val completedVolume = workout.exercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } }
+
+    // Est. time: (total rest timers) + (number of sets * 2 mins)
+    val totalRestSeconds = workout.exercises.sumOf { it.restTimer * it.sets.size }
+    val estTimeSeconds = totalRestSeconds + (totalSets * 120)
+
     // Force recomposition
     key(refreshTrigger) {
         Scaffold(
@@ -89,10 +101,14 @@ fun WorkoutDetailScreen(
                                 Text("FINISH", color = MaterialTheme.colorScheme.primary)
                             }
                         } else {
-                            Button(onClick = { 
-                                onStartWorkout() 
-                                refreshTrigger++ 
-                            }) {
+                            // Only enable START if no other workout is active
+                            Button(
+                                onClick = { 
+                                    onStartWorkout() 
+                                    refreshTrigger++ 
+                                },
+                                enabled = !isAnyOtherWorkoutActive
+                            ) {
                                 Text("START")
                             }
                         }
@@ -113,12 +129,12 @@ fun WorkoutDetailScreen(
                     // A. Workout Stats
                     item {
                         WorkoutHeaderStats(
-                            workoutDuration = formatDuration(workoutDurationSeconds),
-                            restTimerValue = if (isRestTimerRunning) "%02d:%02d".format(restTimerSeconds / 60, restTimerSeconds % 60) else "00:00",
-                            restTimerColor = if (isRestTimerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            onRestTimerClick = { },
-                            volume = "0 kg",
-                            sets = workout.exercises.sumOf { it.sets.size }.toString()
+                            mainTimerLabel = if (workout.isActive) "Duration" else "Est. Time",
+                            mainTimerValue = if (workout.isActive) formatDuration(workoutDurationSeconds) else formatDuration(estTimeSeconds.toLong()),
+                            volumeLabel = if (workout.isActive) "Volume" else "Total Volume",
+                            volumeValue = "${if (workout.isActive) completedVolume.toInt() else totalVolume.toInt()} kg",
+                            setsLabel = if (workout.isActive) "Sets Done" else "Total Sets",
+                            setsValue = if (workout.isActive) "$completedSets/$totalSets" else "$totalSets"
                         )
                     }
 

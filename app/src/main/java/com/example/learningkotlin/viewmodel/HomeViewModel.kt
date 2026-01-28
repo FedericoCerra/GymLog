@@ -30,21 +30,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
-    fun startWorkout(workout: Workout) {
-        // IMPROVEMENT: Ensure only ONE workout is active at a time
-        workouts.forEach { 
-            if (it.isActive) {
-                it.isActive = false
-                it.startTime = null
-            }
-        }
+    fun startWorkout(workout: Workout): Boolean {
+        // Prevent starting if ANY workout is already active
+        if (workouts.any { it.isActive }) return false
 
         val target = workouts.find { it.id == workout.id }
         target?.let {
             it.isActive = true
             it.startTime = System.currentTimeMillis()
             save()
+            return true
         }
+        return false
     }
 
     fun finishWorkout(workout: Workout) {
@@ -52,8 +49,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         target?.let {
             it.isActive = false
             it.startTime = null
+            // Optional: You could reset set.isDone here if you want a fresh start next time
+            // it.exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
             save()
         }
+    }
+
+    // Returns true if there is a workout active that is NOT the one provided
+    fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
+        return workouts.any { it.isActive && it.id != currentWorkoutId }
     }
 
     fun onDetailScreenExit() {

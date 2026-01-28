@@ -15,7 +15,6 @@ import com.example.learningkotlin.viewmodel.HomeViewModel
 fun NavGraph(
     navController: NavHostController,
 ) {
-    // 1. Initialize ViewModel here
     val homeViewModel: HomeViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = "home") {
@@ -28,14 +27,17 @@ fun NavGraph(
 
         composable(
             route = "detail/{workoutId}",
-            arguments = listOf(navArgument("workoutId") { type = NavType.IntType })
+            arguments = listOf(navArgument("workoutId") { 
+                type = NavType.IntType
+            })
         ) { backStackEntry ->
-            val workoutId = backStackEntry.arguments?.getInt("workoutId")
+            val workoutId = backStackEntry.arguments?.getInt("workoutId") ?: -1
             val selectedWorkout = homeViewModel.workouts.find { it.id == workoutId }
 
             if (selectedWorkout != null) {
                 WorkoutDetailScreen(
                     workout = selectedWorkout,
+                    isAnyOtherWorkoutActive = homeViewModel.isAnyOtherWorkoutActive(workoutId),
                     onStartWorkout = { homeViewModel.startWorkout(selectedWorkout) },
                     onFinishWorkout = { homeViewModel.finishWorkout(selectedWorkout) },
                     onBackClick = {
