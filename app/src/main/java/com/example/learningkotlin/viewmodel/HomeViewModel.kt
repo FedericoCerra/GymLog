@@ -55,6 +55,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
+    fun deleteFinishedWorkout(workoutId: Int) {
+        history.removeAll { it.id == workoutId }
+        HistoryManager.deleteWorkout(getApplication(), workoutId)
+    }
+
     fun startWorkout(workout: Workout): Boolean {
         if (workouts.any { it.isActive }) return false
 

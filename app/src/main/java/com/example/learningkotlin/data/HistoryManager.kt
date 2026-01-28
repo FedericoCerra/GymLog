@@ -12,6 +12,16 @@ object HistoryManager {
     fun saveFinishedWorkout(context: Context, workout: FinishedWorkout) {
         val history = loadHistory(context).toMutableList()
         history.add(0, workout) // Add to top
+        saveHistory(context, history)
+    }
+
+    fun deleteWorkout(context: Context, workoutId: Int) {
+        val history = loadHistory(context).toMutableList()
+        history.removeAll { it.id == workoutId }
+        saveHistory(context, history)
+    }
+
+    private fun saveHistory(context: Context, history: List<FinishedWorkout>) {
         try {
             val jsonString = Json.encodeToString(history)
             val file = File(context.filesDir, FILE_NAME)

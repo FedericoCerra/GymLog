@@ -48,10 +48,8 @@ fun NavGraph(
     val density = LocalDensity.current
     val systemNavBarHeight = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
     val customBarHeight = 56.dp
-    // totalBottomOffset is the distance from screen bottom to top of our custom nav bar
     val totalBottomOffset = if (showBottomBar) customBarHeight + systemNavBarHeight else 0.dp
 
-    // Root background matches theme to avoid "white box" gaps
     Box(modifier = Modifier
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background) 
@@ -61,7 +59,7 @@ fun NavGraph(
         ) { innerPadding ->
             Box(modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding()) // Handle status bar safe area
+                .padding(top = innerPadding.calculateTopPadding())
             ) {
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
@@ -78,7 +76,8 @@ fun NavGraph(
                             onWorkoutClick = { workout ->
                                 selectedHistoryWorkout = workout
                                 navController.navigate("history_recap")
-                            }
+                            },
+                            onDeleteWorkout = { id -> homeViewModel.deleteFinishedWorkout(id) }
                         )
                     }
 
@@ -148,10 +147,9 @@ fun NavGraph(
             }
         }
 
-        // Custom Navigation Bar
         if (showBottomBar) {
             Surface(
-                color = Color(0xFF0F0F0F), // Dark Gray/Black color from Hevy
+                color = Color(0xFF0F0F0F),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -192,7 +190,6 @@ fun NavGraph(
                             }
                         )
                     }
-                    // This Spacer forces the color to extend behind the system buttons
                     Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 }
             }
