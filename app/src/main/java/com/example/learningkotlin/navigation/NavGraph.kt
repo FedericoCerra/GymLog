@@ -67,7 +67,7 @@ fun NavGraph(
                         HomeScreen(
                             viewModel = homeViewModel,
                             onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
-                            onSummaryClick = { navController.navigate("history") }, // Navigate to History tab
+                            onSummaryClick = { navController.navigate("history") },
                             bottomBarPadding = if (showBottomBar) totalBottomAreaHeight else 0.dp
                         )
                     }
@@ -140,6 +140,7 @@ fun NavGraph(
                     ) {
                         BottomTimerBar(
                             secondsRemaining = homeViewModel.restTimerSeconds,
+                            totalSeconds = homeViewModel.initialRestTimerSeconds, // Pass the initial duration
                             onSkip = { homeViewModel.skipTimer() },
                             onAdd15 = { homeViewModel.add15Seconds() },
                             onSub15 = { homeViewModel.sub15Seconds() }

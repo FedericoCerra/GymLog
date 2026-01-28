@@ -33,6 +33,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // 2. TIMER STATE (Now global to the app)
     var restTimerSeconds by mutableIntStateOf(0)
         private set
+    var initialRestTimerSeconds by mutableIntStateOf(0) // Track starting time for progress bar
+        private set
     var isRestTimerRunning by mutableStateOf(false)
         private set
     private var timerJob: Job? = null
@@ -126,6 +128,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // --- TIMER LOGIC ---
     fun startRestTimer(seconds: Int) {
         timerJob?.cancel()
+        initialRestTimerSeconds = seconds
         restTimerSeconds = seconds
         isRestTimerRunning = true
         
@@ -141,15 +144,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun skipTimer() {
         timerJob?.cancel()
         restTimerSeconds = 0
+        initialRestTimerSeconds = 0
         isRestTimerRunning = false
     }
 
     fun add15Seconds() {
         restTimerSeconds += 15
+        initialRestTimerSeconds += 15 // Increase total so progress looks right
     }
 
     fun sub15Seconds() {
-        if (restTimerSeconds > 15) restTimerSeconds -= 15 else skipTimer()
+        if (restTimerSeconds > 15) {
+            restTimerSeconds -= 15
+            // Keep initial the same or adjust? Usually best to keep it so bar just jumps forward
+        } else {
+            skipTimer()
+        }
     }
 
     fun onDetailScreenExit() {

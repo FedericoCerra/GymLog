@@ -1,123 +1,193 @@
 package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun BottomTimerBar(
     secondsRemaining: Int,
+    totalSeconds: Int,
     onSkip: () -> Unit,
     onAdd15: () -> Unit,
     onSub15: () -> Unit
 ) {
-    // Format: 01:30
     val minutes = secondsRemaining / 60
     val seconds = secondsRemaining % 60
     val timeText = "%02d:%02d".format(minutes, seconds)
 
-    // A Floating "Pill" Design
-    Card(
+    val progress = if (totalSeconds > 0) secondsRemaining.toFloat() / totalSeconds.toFloat() else 0f
+    val animatedProgress by animateFloatAsState(targetValue = progress, label = "TimerProgress")
+
+    val coroutineScope = rememberCoroutineScope()
+    val offsetX = remember { Animatable(0f) }
+    val threshold = -200f
+
+    val isPastThreshold = offsetX.value < threshold
+
+    val hintColor by animateColorAsState(
+        targetValue = if (isPastThreshold) MaterialTheme.colorScheme.error else Color.Gray.copy(alpha = 0.4f),
+        label = "HintColor"
+    )
+    val hintScale by animateFloatAsState(
+        targetValue = if (isPastThreshold) 1.3f else 0.9f,
+        label = "HintScale"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .height(70.dp)
-            .shadow(12.dp, RoundedCornerShape(35.dp)), // Soft shadow
-        shape = RoundedCornerShape(35.dp), // Pill shape
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant // Dark Grey
-        )
+            .padding(horizontal = 16.dp)
+            .height(80.dp), // Sleeker height
+        contentAlignment = Alignment.CenterEnd
     ) {
-        Row(
+        // 1. MINIMALIST BACKGROUND ICON
+        Icon(
+            imageVector = Icons.Default.DeleteSweep,
+            contentDescription = null,
+            tint = hintColor,
+            modifier = Modifier
+                .padding(end = 24.dp)
+                .size(32.dp)
+                .alpha((abs(offsetX.value) / 100f).coerceIn(0f, 1f))
+                .scale(hintScale)
+        )
+
+        // 2. THE SWIPEABLE CARD
+        Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp), // Tight padding for the pill look
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // 1. THE TIME (Blue Circle)
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = timeText,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace // Keeps numbers stable
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // 2. TEXT STATUS
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Resting...",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                // Small progress bar visualization could go here later
-            }
-
-            // 3. CONTROLS (Row of circles)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // -15s
-                TimerCircleButton(text = "-15") { onSub15() }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // +15s
-                TimerCircleButton(text = "+15") { onAdd15() }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Close (X)
-                IconButton(onClick = onSkip) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (dragAmount < 0 || offsetX.value < 0) {
+                                coroutineScope.launch {
+                                    offsetX.snapTo(offsetX.value + dragAmount)
+                                }
+                            }
+                        },
+                        onDragEnd = {
+                            if (offsetX.value < threshold) {
+                                onSkip()
+                            } else {
+                                coroutineScope.launch {
+                                    offsetX.animateTo(0f)
+                                }
+                            }
+                        }
                     )
                 }
+                .shadow(16.dp, RoundedCornerShape(40.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(40.dp)),
+            shape = RoundedCornerShape(40.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF18181A))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp) // Tighter internal padding
+            ) {
+                // LEFT PILL
+                TimerActionPill(
+                    text = "-15s",
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    onClick = onSub15
+                )
+
+                // ABSOLUTE CENTER TIMER
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { 1f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = Color.White.copy(alpha = 0.05f),
+                        strokeWidth = 3.dp
+                    )
+                    CircularProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
+                        trackColor = Color.Transparent
+                    )
+                    Text(
+                        text = timeText,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                // RIGHT PILL
+                TimerActionPill(
+                    text = "+15s",
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    onClick = onAdd15
+                )
             }
         }
     }
 }
 
 @Composable
-fun TimerCircleButton(text: String, onClick: () -> Unit) {
+fun TimerActionPill(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.background) // Black background for contrast
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+        modifier = modifier
+            .height(38.dp) // Sleeker button height
+            .clip(RoundedCornerShape(19.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(19.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = Color.White),
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 12.sp
+            fontSize = 13.sp
         )
     }
 }
