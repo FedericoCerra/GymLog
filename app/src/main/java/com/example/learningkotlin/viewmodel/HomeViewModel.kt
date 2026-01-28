@@ -8,7 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learningkotlin.data.HistoryManager
 import com.example.learningkotlin.data.WorkoutManager
+import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.Workout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,6 +19,10 @@ import kotlinx.coroutines.launch
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // 1. STATE: The list of workouts
     val workouts = WorkoutManager.loadWorkouts(application.applicationContext).toMutableStateList()
+    
+    // History state
+    var history = HistoryManager.loadHistory(application.applicationContext).toMutableStateList()
+        private set
 
     // 2. TIMER STATE (Now global to the app)
     var restTimerSeconds by mutableIntStateOf(0)
@@ -24,6 +30,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     var isRestTimerRunning by mutableStateOf(false)
         private set
     private var timerJob: Job? = null
+
+    // For Recap navigation
+    var lastFinishedWorkout by mutableStateOf<FinishedWorkout?>(null)
+        private set
 
     // 3. HELPER: Save to file
     private fun save() = WorkoutManager.saveWorkouts(getApplication(), workouts)
@@ -61,10 +71,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun finishWorkout(workout: Workout) {
         val target = workouts.find { it.id == workout.id }
         target?.let {
+            val now = System.currentTimeMillis()
+            val duration = (now - (it.startTime ?: now)) / 1000
+            
+            // Calculate stats for history
+            val totalSets = it.exercises.sumOf { ex -> ex.sets.count { s -> s.isDone } }
+            val totalVolume = it.exercises.sumOf { ex -> ex.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } }
+            
+            val finished = FinishedWorkout(
+                id = (history.maxOfOrNull { h -> h.id } ?: 0) + 1,
+                name = it.name,
+                date = now,
+                durationSeconds = duration,
+                totalVolume = totalVolume,
+                totalSets = totalSets,
+                exercises = it.exercises.map { ex -> 
+                    ex.copy(sets = ex.sets.filter { s -> s.isDone }.toMutableList()) 
+                }.filter { ex -> ex.sets.isNotEmpty() }
+            )
+            
+            HistoryManager.saveFinishedWorkout(getApplication(), finished)
+            history.add(0, finished)
+            lastFinishedWorkout = finished
+
+            // Reset current workout
             it.isActive = false
             it.startTime = null
+            // Reset "isDone" for next time
+            it.exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
+            
             save()
         }
+    }
+
+    fun clearLastFinishedWorkout() {
+        lastFinishedWorkout = null
     }
 
     fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
