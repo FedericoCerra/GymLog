@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -14,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -27,7 +30,7 @@ import com.example.learningkotlin.model.WorkoutSet
 fun SetRow(
     index: Int,
     set: WorkoutSet,
-    isWorkoutActive: Boolean, // <--- ADDED: Control visibility
+    isWorkoutActive: Boolean,
     onDelete: () -> Unit,
     onCheck: (Boolean) -> Unit
 ) {
@@ -42,6 +45,8 @@ fun SetRow(
     var isChecked by remember { mutableStateOf(set.isDone) }
     var showMenu by remember { mutableStateOf(false) }
 
+    // Validation: Only allow checking if weight > 0 and reps > 0
+    val isDataValid = (set.weight > 0.0 && set.reps > 0)
     val rowColor = if (isChecked) Color(0xFF4CAF50).copy(alpha = 0.2f) else Color.Transparent
 
     Row(
@@ -88,7 +93,8 @@ fun SetRow(
                 weightText = it
                 set.weight = it.toDoubleOrNull() ?: 0.0
             },
-            modifier = Modifier.weight(1.5f)
+            modifier = Modifier.weight(1.5f),
+            imeAction = ImeAction.Next
         )
 
         // 4. Reps Input
@@ -98,7 +104,8 @@ fun SetRow(
                 repsText = it
                 set.reps = it.toIntOrNull() ?: 0
             },
-            modifier = Modifier.weight(1.5f)
+            modifier = Modifier.weight(1.5f),
+            imeAction = ImeAction.Done
         )
 
         // 5. Checkbox (Only visible if workout is ACTIVE)
@@ -106,13 +113,20 @@ fun SetRow(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = {
-                        isChecked = !isChecked
-                        set.isDone = isChecked
-                        onCheck(isChecked)
+                        if (isDataValid) {
+                            isChecked = !isChecked
+                            set.isDone = isChecked
+                            onCheck(isChecked)
+                        }
                     },
                     shape = RoundedCornerShape(4.dp),
-                    color = if (isChecked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    color = when {
+                        isChecked -> Color(0xFF4CAF50)
+                        !isDataValid -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    modifier = Modifier.size(28.dp),
+                    enabled = isDataValid || isChecked // Allow unchecking even if data became invalid
                 ) {
                     if (isChecked) {
                         Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
@@ -123,13 +137,25 @@ fun SetRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TableInput(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier,
+    imeAction: ImeAction,
     placeholder: String = "0"
 ) {
+    val focusManager = LocalFocusManager.current
+    
+    // Detect if keyboard is hidden to clear focus
+    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    LaunchedEffect(isKeyboardVisible) {
+        if (!isKeyboardVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
     Box(
         modifier = modifier
             .padding(horizontal = 4.dp)
@@ -157,7 +183,11 @@ private fun TableInput(
             ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
+                imeAction = imeAction
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { focusManager.clearFocus() },
+                onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Next) }
             ),
             singleLine = true,
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
