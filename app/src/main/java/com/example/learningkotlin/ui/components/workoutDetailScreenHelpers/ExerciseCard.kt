@@ -16,11 +16,13 @@ import com.example.learningkotlin.model.WorkoutSet
 fun ExerciseCard(
     exercise: Exercise,
     isWorkoutActive: Boolean,
+    parentRefreshTrigger: Int, // <--- Watches parent state for stats/logic
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
     onStartTimer: (Int) -> Unit
 ) {
-    var refreshTrigger by remember { mutableIntStateOf(0) }
+    // Local trigger for adding/removing sets instantly without lag
+    var localSetsTrigger by remember { mutableIntStateOf(0) }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -35,7 +37,7 @@ fun ExerciseCard(
                 onDeleteExercise = { onRemove() },
                 onTimerChange = { newTime ->
                     exercise.restTimer = newTime
-                    refreshTrigger++
+                    localSetsTrigger++
                     onUpdate()
                 }
             )
@@ -55,20 +57,27 @@ fun ExerciseCard(
 
             // 3. SETS LIST
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // We combine triggers to ensure we redraw when sets are added OR parent is refreshed
+                val combinedTrigger = localSetsTrigger + parentRefreshTrigger
+                
                 exercise.sets.forEachIndexed { index, set ->
-                    SetRow(
-                        index = index + 1,
-                        set = set,
-                        isWorkoutActive = isWorkoutActive,
-                        onDelete = {
-                            exercise.sets.remove(set)
-                            onRemove()
-                        },
-                        onCheck = { isChecked ->
-                            onUpdate() // <--- Added: Trigger update when checking/unchecking
-                            if (isChecked) onStartTimer(exercise.restTimer)
-                        }
-                    )
+                    // Use a stable key for each set row to prevent flickering/lag
+                    key(set.id) {
+                        SetRow(
+                            index = index + 1,
+                            set = set,
+                            isWorkoutActive = isWorkoutActive,
+                            onDelete = {
+                                exercise.sets.remove(set)
+                                localSetsTrigger++
+                                onUpdate()
+                            },
+                            onCheck = { isChecked ->
+                                onUpdate() // Updates parent stats
+                                if (isChecked) onStartTimer(exercise.restTimer)
+                            }
+                        )
+                    }
                 }
             }
 
@@ -81,7 +90,7 @@ fun ExerciseCard(
                     val nextId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
 
                     exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
-                    refreshTrigger++
+                    localSetsTrigger++ // Instant UI update for the new set
                     onUpdate()
                 },
                 colors = ButtonDefaults.buttonColors(
