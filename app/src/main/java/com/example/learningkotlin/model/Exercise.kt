@@ -7,5 +7,6 @@ data class Exercise(
     var name: String,
     val sets: MutableList<WorkoutSet>,
     var restTimer: Int = 90,
-    var imagePath: String? = null
+    var imagePath: String? = null,
+    var notes: String = ""
 )

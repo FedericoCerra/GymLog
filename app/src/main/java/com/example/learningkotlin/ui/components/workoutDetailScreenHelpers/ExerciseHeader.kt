@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
@@ -14,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,14 +29,16 @@ fun ExerciseHeader(
     exercise: Exercise,
     onDeleteExercise: () -> Unit,
     onTimerChange: (Int) -> Unit,
-    onInfoClick: () -> Unit
+    onInfoClick: () -> Unit,
+    onNotesChange: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var notesText by remember(exercise.notes) { mutableStateOf(exercise.notes) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top, // Align items to the top to handle long titles
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // 1. IMAGE THUMBNAIL
@@ -50,7 +55,7 @@ fun ExerciseHeader(
                 Spacer(modifier = Modifier.width(12.dp))
             }
 
-            // 2. TEXT INFO (Title only here)
+            // 2. TEXT INFO (Title and Notes)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = exercise.name,
@@ -59,6 +64,29 @@ fun ExerciseHeader(
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
                     modifier = Modifier.clickable { onInfoClick() }
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // NOTES FIELD
+                BasicTextField(
+                    value = notesText,
+                    onValueChange = { 
+                        notesText = it
+                        onNotesChange(it)
+                    },
+                    textStyle = TextStyle(
+                        color = Color.Gray,
+                        fontSize = 13.sp
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        if (notesText.isEmpty()) {
+                            Text("Add notes...", color = Color.DarkGray, fontSize = 13.sp)
+                        }
+                        innerTextField()
+                    }
                 )
             }
 
@@ -93,17 +121,12 @@ fun ExerciseHeader(
             }
         }
 
-        // 4. TIMER CHIP (Moved strictly under the title/image row)
+        // 4. TIMER CHIP (Moved strictly to the left)
         Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
-            // Indent the timer slightly if there's an image so it aligns with the text
-            if (exercise.imagePath != null) {
-                Spacer(modifier = Modifier.width(60.dp)) // 48dp image + 12dp spacer
-            }
-            
             RestTimerChip(
                 currentSeconds = exercise.restTimer,
                 onTimeSelected = onTimerChange

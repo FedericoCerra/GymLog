@@ -20,7 +20,7 @@ fun ExerciseCard(
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
     onStartTimer: (Int) -> Unit,
-    onInfoClick: () -> Unit // <--- Added this parameter
+    onInfoClick: () -> Unit
 ) {
     var localSetsTrigger by remember { mutableIntStateOf(0) }
 
@@ -40,7 +40,12 @@ fun ExerciseCard(
                     localSetsTrigger++
                     onUpdate()
                 },
-                onInfoClick = onInfoClick // <--- Pass it to the header
+                onInfoClick = onInfoClick,
+                onNotesChange = { newNotes ->
+                    exercise.notes = newNotes
+                    // We don't necessarily need to trigger a full parent refresh for every character typed
+                    // but we might want to save eventually. WorkoutDetailScreen saves on exit.
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
