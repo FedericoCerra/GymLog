@@ -16,41 +16,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Define the Dark Theme (The one you want)
 private val DarkColorScheme = darkColorScheme(
     primary = HevyBlue,
     onPrimary = Color.White,
-
-    // Backgrounds
     background = HevyBlack,
     onBackground = HevyWhite,
-
-    // Cards
-    surface = HevyBlack,         // Main screen background
-    surfaceVariant = HevyDarkGrey, // Card background
-    onSurface = HevyWhite,       // Text on cards
-    onSurfaceVariant = HevyLightGrey, // Subtext on cards
-
-    // Inputs
+    surface = HevyBlack,
+    surfaceVariant = HevyDarkGrey,
+    onSurface = HevyWhite,
+    onSurfaceVariant = HevyLightGrey,
     secondaryContainer = HevyInputGrey,
     onSecondaryContainer = HevyWhite,
-
     error = HevyRed
 )
 
-// Define Light Theme (Just in case, but keeping it blue/clean)
 private val LightColorScheme = lightColorScheme(
     primary = HevyBlue,
     onPrimary = Color.White,
-
-    background = Color(0xFFF2F2F7), // Light iOS grey style
+    background = Color(0xFFF2F2F7),
     onBackground = Color.Black,
-
     surface = Color.White,
     surfaceVariant = Color.White,
     onSurface = Color.Black,
     onSurfaceVariant = Color.Gray,
-
     secondaryContainer = Color(0xFFE5E5EA),
     onSecondaryContainer = Color.Black
 )
@@ -58,7 +46,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun LearningKotlinTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // IMPORTANT: We set this to FALSE to ignore the user's wallpaper colors
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -75,14 +62,21 @@ fun LearningKotlinTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Make the status bar (battery, time) match the background
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            
+            // 1. Set the background color of the system navigation bar to match our custom bar
+            // We use the same color as our navigation bar (0xFF0F0F0F)
+            window.navigationBarColor = Color(0xFF0F0F0F).toArgb()
+            
+            // 2. Control icon colors (battery, back/home icons)
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // Keep default typography for now
+        typography = Typography,
         content = content
     )
 }
