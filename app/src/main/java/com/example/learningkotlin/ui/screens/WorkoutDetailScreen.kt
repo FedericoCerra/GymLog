@@ -13,7 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.Workout
@@ -55,7 +58,6 @@ fun WorkoutDetailScreen(
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
-    // These will now recalculate efficiently
     val totalSets = remember(workout.exercises.size, refreshTrigger) { 
         workout.exercises.sumOf { it.sets.size } 
     }
@@ -85,7 +87,6 @@ fun WorkoutDetailScreen(
                     }
                 },
                 actions = {
-                    // Button only updates if isActive changes
                     if (workout.isActive) {
                         TextButton(onClick = { 
                             onFinishWorkout() 
@@ -127,12 +128,10 @@ fun WorkoutDetailScreen(
                     )
                 }
 
-                // FIXED: Use a STABLE key (it.id) to stop the lag
                 items(workout.exercises, key = { it.id }) { exercise ->
                     ExerciseCard(
                         exercise = exercise,
                         isWorkoutActive = workout.isActive,
-                        // We pass refreshTrigger down so the card knows when to update its internal stats
                         parentRefreshTrigger = refreshTrigger,
                         onUpdate = { refreshTrigger++ },
                         onRemove = {
@@ -184,19 +183,23 @@ fun WorkoutDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            val filteredExercises = ExerciseLibrary.commonExercises.filter {
-                                it.contains(searchQuery, ignoreCase = true)
+                            val filteredExercises = ExerciseLibrary.getDefinitions().filter {
+                                it.name.contains(searchQuery, ignoreCase = true) ||
+                                it.primaryMuscles.any { muscle -> muscle.contains(searchQuery, ignoreCase = true) }
                             }
 
-                            LazyColumn(modifier = Modifier.height(300.dp)) {
-                                items(filteredExercises) { exerciseName ->
+                            LazyColumn(modifier = Modifier.height(400.dp)) {
+                                items(filteredExercises, key = { it.id }) { def ->
                                     ListItem(
-                                        headlineContent = { Text(exerciseName) },
+                                        headlineContent = { Text(def.name, fontWeight = FontWeight.Bold) },
+                                        supportingContent = { 
+                                            Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = Color.Gray)
+                                        },
                                         modifier = Modifier.clickable {
                                             val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
                                             val newExercise = Exercise(
                                                 id = newId,
-                                                name = exerciseName,
+                                                name = def.name,
                                                 sets = mutableListOf(WorkoutSet(1, 0.0, 0, false)),
                                                 restTimer = 90
                                             )

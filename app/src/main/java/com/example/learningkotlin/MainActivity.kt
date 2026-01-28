@@ -23,7 +23,5 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-//todo implement start and finish of workout
-//todo make so that user selects exercises
 //todo database!
-//todo profiles, recap, analysis.
+//todo profiles, analysis.

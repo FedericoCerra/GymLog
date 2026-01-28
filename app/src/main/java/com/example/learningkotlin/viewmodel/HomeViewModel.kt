@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.data.HistoryManager
 import com.example.learningkotlin.data.WorkoutManager
 import com.example.learningkotlin.model.FinishedWorkout
@@ -23,6 +24,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // History state
     var history = HistoryManager.loadHistory(application.applicationContext).toMutableStateList()
         private set
+
+    // Initialize Exercise Library
+    init {
+        ExerciseLibrary.load(application.applicationContext)
+    }
 
     // 2. TIMER STATE (Now global to the app)
     var restTimerSeconds by mutableIntStateOf(0)
