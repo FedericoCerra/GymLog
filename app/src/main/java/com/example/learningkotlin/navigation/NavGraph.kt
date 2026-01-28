@@ -47,13 +47,14 @@ fun NavGraph(
 
     val barColor = Color(0xFF0F0F0F)
     val density = LocalDensity.current
-    val systemNavBarHeight = with(density) { WindowInsets.navigationBars.getBottom(this).toDp() }
+    // Get exact height of the system navigation area
+    val systemBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val customBarHeight = 56.dp
-    val totalBottomAreaHeight = customBarHeight + systemNavBarHeight
+    val totalBottomOffset = if (showBottomBar) customBarHeight + systemBottomPadding else 0.dp
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(Color.Black)
+        .background(MaterialTheme.colorScheme.background) 
     ) {
         Scaffold(
             containerColor = Color.Transparent, 
@@ -68,7 +69,7 @@ fun NavGraph(
                             viewModel = homeViewModel,
                             onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
                             onSummaryClick = { navController.navigate("history") },
-                            bottomBarPadding = if (showBottomBar) totalBottomAreaHeight else 0.dp
+                            bottomBarPadding = totalBottomOffset
                         )
                     }
 
@@ -136,11 +137,11 @@ fun NavGraph(
                 if (homeViewModel.isRestTimerRunning) {
                     Box(modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = totalBottomAreaHeight + 8.dp) 
+                        .padding(bottom = totalBottomOffset + 12.dp) 
                     ) {
                         BottomTimerBar(
                             secondsRemaining = homeViewModel.restTimerSeconds,
-                            totalSeconds = homeViewModel.initialRestTimerSeconds, // Pass the initial duration
+                            totalSeconds = homeViewModel.initialRestTimerSeconds,
                             onSkip = { homeViewModel.skipTimer() },
                             onAdd15 = { homeViewModel.add15Seconds() },
                             onSub15 = { homeViewModel.sub15Seconds() }
@@ -150,11 +151,12 @@ fun NavGraph(
             }
         }
 
+        // Custom Bottom Bar: Spans the entire bottom area for uniform color
         if (showBottomBar) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(totalBottomAreaHeight)
+                    .height(totalBottomOffset)
                     .align(Alignment.BottomCenter)
                     .background(barColor)
             ) {

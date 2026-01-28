@@ -11,7 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,11 +53,11 @@ fun BottomTimerBar(
     val isPastThreshold = offsetX.value < threshold
 
     val hintColor by animateColorAsState(
-        targetValue = if (isPastThreshold) MaterialTheme.colorScheme.error else Color.Gray.copy(alpha = 0.4f),
+        targetValue = if (isPastThreshold) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.2f),
         label = "HintColor"
     )
     val hintScale by animateFloatAsState(
-        targetValue = if (isPastThreshold) 1.3f else 0.9f,
+        targetValue = if (isPastThreshold) 1.2f else 0.8f,
         label = "HintScale"
     )
 
@@ -65,17 +65,17 @@ fun BottomTimerBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .height(80.dp), // Sleeker height
+            .height(72.dp), // Sleeker height
         contentAlignment = Alignment.CenterEnd
     ) {
-        // 1. MINIMALIST BACKGROUND ICON
+        // 1. MINIMALIST BACKGROUND HINT (An "X" icon revealed on swipe)
         Icon(
-            imageVector = Icons.Default.DeleteSweep,
+            imageVector = Icons.Default.Close,
             contentDescription = null,
             tint = hintColor,
             modifier = Modifier
                 .padding(end = 24.dp)
-                .size(32.dp)
+                .size(28.dp)
                 .alpha((abs(offsetX.value) / 100f).coerceIn(0f, 1f))
                 .scale(hintScale)
         )
@@ -106,17 +106,17 @@ fun BottomTimerBar(
                         }
                     )
                 }
-                .shadow(16.dp, RoundedCornerShape(40.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(40.dp)),
-            shape = RoundedCornerShape(40.dp),
+                .shadow(12.dp, RoundedCornerShape(36.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(36.dp)),
+            shape = RoundedCornerShape(36.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF18181A))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp) // Tighter internal padding
+                    .padding(horizontal = 8.dp) // Reduced internal padding
             ) {
-                // LEFT PILL
+                // LEFT ACTION
                 TimerActionPill(
                     text = "-15s",
                     modifier = Modifier.align(Alignment.CenterStart),
@@ -126,18 +126,18 @@ fun BottomTimerBar(
                 // ABSOLUTE CENTER TIMER
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(52.dp)
                         .align(Alignment.Center),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        progress = { 1f },
+                        progress = 1f,
                         modifier = Modifier.fillMaxSize(),
                         color = Color.White.copy(alpha = 0.05f),
                         strokeWidth = 3.dp
                     )
                     CircularProgressIndicator(
-                        progress = { animatedProgress },
+                        progress = animatedProgress, // Fixed: Using Float for immediate reactivity
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 3.dp,
@@ -147,12 +147,12 @@ fun BottomTimerBar(
                         text = timeText,
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
 
-                // RIGHT PILL
+                // RIGHT ACTION
                 TimerActionPill(
                     text = "+15s",
                     modifier = Modifier.align(Alignment.CenterEnd),
@@ -171,10 +171,9 @@ fun TimerActionPill(
 ) {
     Box(
         modifier = modifier
-            .height(38.dp) // Sleeker button height
-            .clip(RoundedCornerShape(19.dp))
+            .height(36.dp)
+            .clip(RoundedCornerShape(18.dp))
             .background(Color.White.copy(alpha = 0.06f))
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(19.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(color = Color.White),

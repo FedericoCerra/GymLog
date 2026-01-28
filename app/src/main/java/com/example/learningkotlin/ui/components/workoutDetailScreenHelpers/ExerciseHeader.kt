@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
@@ -17,23 +19,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.learningkotlin.model.Exercise
 
 @Composable
 fun ExerciseHeader(
-    exercise: Exercise,
+    exerciseName: String,
+    restTimer: Int,
+    notes: String,
+    imagePath: String?,
     onDeleteExercise: () -> Unit,
     onTimerChange: (Int) -> Unit,
     onInfoClick: () -> Unit,
     onNotesChange: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var notesText by remember(exercise.notes) { mutableStateOf(exercise.notes) }
+    var localNotes by remember(notes) { mutableStateOf(notes) }
+    val focusManager = LocalFocusManager.current
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -42,9 +49,9 @@ fun ExerciseHeader(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // 1. IMAGE THUMBNAIL
-            if (exercise.imagePath != null) {
+            if (imagePath != null) {
                 AsyncImage(
-                    model = "file:///android_asset/exercises/${exercise.imagePath}",
+                    model = "file:///android_asset/exercises/$imagePath",
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)
@@ -58,7 +65,7 @@ fun ExerciseHeader(
             // 2. TEXT INFO (Title and Notes)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = exercise.name,
+                    text = exerciseName,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
@@ -70,19 +77,21 @@ fun ExerciseHeader(
                 
                 // NOTES FIELD
                 BasicTextField(
-                    value = notesText,
+                    value = localNotes,
                     onValueChange = { 
-                        notesText = it
+                        localNotes = it
                         onNotesChange(it)
                     },
                     textStyle = TextStyle(
                         color = Color.Gray,
                         fontSize = 13.sp
                     ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
-                        if (notesText.isEmpty()) {
+                        if (localNotes.isEmpty()) {
                             Text("Add notes...", color = Color.DarkGray, fontSize = 13.sp)
                         }
                         innerTextField()
@@ -121,14 +130,14 @@ fun ExerciseHeader(
             }
         }
 
-        // 4. TIMER CHIP (Moved strictly to the left)
+        // 4. TIMER CHIP
         Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
             RestTimerChip(
-                currentSeconds = exercise.restTimer,
+                currentSeconds = restTimer,
                 onTimeSelected = onTimerChange
             )
         }

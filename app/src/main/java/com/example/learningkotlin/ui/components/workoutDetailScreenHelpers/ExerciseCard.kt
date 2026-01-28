@@ -22,35 +22,40 @@ fun ExerciseCard(
     onStartTimer: (Int) -> Unit,
     onInfoClick: () -> Unit
 ) {
-    var localSetsTrigger by remember { mutableIntStateOf(0) }
+    var localRefreshTrigger by remember { mutableIntStateOf(0) }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        // Forces card to recompose when any data changes
+        val trigger = localRefreshTrigger + parentRefreshTrigger
+        
         Column(modifier = Modifier.padding(16.dp)) {
-
-            // 1. HEADER
-            ExerciseHeader(
-                exercise = exercise,
-                onDeleteExercise = { onRemove() },
-                onTimerChange = { newTime ->
-                    exercise.restTimer = newTime
-                    localSetsTrigger++
-                    onUpdate()
-                },
-                onInfoClick = onInfoClick,
-                onNotesChange = { newNotes ->
-                    exercise.notes = newNotes
-                    // We don't necessarily need to trigger a full parent refresh for every character typed
-                    // but we might want to save eventually. WorkoutDetailScreen saves on exit.
-                }
-            )
+            // Pass the primitives explicitly so Compose detects the change instantly
+            key(exercise.restTimer, exercise.notes) {
+                ExerciseHeader(
+                    exerciseName = exercise.name,
+                    restTimer = exercise.restTimer,
+                    notes = exercise.notes,
+                    imagePath = exercise.imagePath,
+                    onDeleteExercise = { onRemove() },
+                    onTimerChange = { newTime ->
+                        exercise.restTimer = newTime
+                        localRefreshTrigger++ 
+                        onUpdate()
+                    },
+                    onInfoClick = onInfoClick,
+                    onNotesChange = { newNotes ->
+                        exercise.notes = newNotes
+                        // Don't refresh trigger here to keep typing smooth
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. COLUMN LABELS
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                 HeaderLabel("SET", Modifier.weight(1f))
                 HeaderLabel("PREVIOUS", Modifier.weight(2f))
@@ -61,10 +66,8 @@ fun ExerciseCard(
                 }
             }
 
-            // 3. SETS LIST
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                val trigger = localSetsTrigger + parentRefreshTrigger
-                
+                val listTrigger = trigger // Read trigger to keep list in sync
                 exercise.sets.forEachIndexed { index, set ->
                     key(set.id) {
                         SetRow(
@@ -73,7 +76,7 @@ fun ExerciseCard(
                             isWorkoutActive = isWorkoutActive,
                             onDelete = {
                                 exercise.sets.remove(set)
-                                localSetsTrigger++
+                                localRefreshTrigger++
                                 onUpdate()
                             },
                             onCheck = { isChecked ->
@@ -85,7 +88,6 @@ fun ExerciseCard(
                 }
             }
 
-            // 4. ADD BUTTON
             Button(
                 onClick = {
                     val lastSet = exercise.sets.lastOrNull()
@@ -94,7 +96,7 @@ fun ExerciseCard(
                     val nextId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
 
                     exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
-                    localSetsTrigger++
+                    localRefreshTrigger++
                     onUpdate()
                 },
                 colors = ButtonDefaults.buttonColors(
