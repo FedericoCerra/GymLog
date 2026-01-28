@@ -11,7 +11,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -63,11 +62,11 @@ fun LearningKotlinTheme(
         SideEffect {
             val window = (view.context as Activity).window
             
-            // 1. Set the background color of the system navigation bar to match our custom bar
-            // We use the same color as our navigation bar (0xFF0F0F0F)
-            window.navigationBarColor = Color(0xFF0F0F0F).toArgb()
+            // Correct way to disable the system scrim (API 29+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+            }
             
-            // 2. Control icon colors (battery, back/home icons)
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = !darkTheme
             insetsController.isAppearanceLightNavigationBars = !darkTheme
