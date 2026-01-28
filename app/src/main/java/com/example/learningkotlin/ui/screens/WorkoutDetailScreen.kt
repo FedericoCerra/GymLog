@@ -11,23 +11,23 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.model.WorkoutSet
-import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.BottomTimerBar
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.ExerciseCard
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.WorkoutHeaderStats
+import com.example.learningkotlin.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutDetailScreen(
     workout: Workout,
-    isAnyOtherWorkoutActive: Boolean, // <--- Added this parameter
+    viewModel: HomeViewModel, // <--- Now using ViewModel for global timer
+    isAnyOtherWorkoutActive: Boolean,
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
     onBackClick: () -> Unit,
@@ -36,22 +36,8 @@ fun WorkoutDetailScreen(
     var showDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // REST TIMER STATE
-    var restTimerSeconds by remember { mutableIntStateOf(0) }
-    var isRestTimerRunning by remember { mutableStateOf(false) }
-
     // WORKOUT DURATION STATE
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
-
-    // ENGINE FOR REST TIMER
-    LaunchedEffect(key1 = restTimerSeconds, key2 = isRestTimerRunning) {
-        if (isRestTimerRunning && restTimerSeconds > 0) {
-            delay(1000L)
-            restTimerSeconds -= 1
-        } else if (restTimerSeconds == 0) {
-            isRestTimerRunning = false
-        }
-    }
 
     // ENGINE FOR WORKOUT DURATION
     LaunchedEffect(key1 = workout.isActive) {
@@ -77,7 +63,6 @@ fun WorkoutDetailScreen(
     val totalVolume = workout.exercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } }
     val completedVolume = workout.exercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } }
 
-    // Est. time: (total rest timers) + (number of sets * 2 mins)
     val totalRestSeconds = workout.exercises.sumOf { it.restTimer * it.sets.size }
     val estTimeSeconds = totalRestSeconds + (totalSets * 120)
 
@@ -101,7 +86,6 @@ fun WorkoutDetailScreen(
                                 Text("FINISH", color = MaterialTheme.colorScheme.primary)
                             }
                         } else {
-                            // Only enable START if no other workout is active
                             Button(
                                 onClick = { 
                                     onStartWorkout() 
@@ -149,8 +133,8 @@ fun WorkoutDetailScreen(
                                 refreshTrigger++
                             },
                             onStartTimer = { duration ->
-                                restTimerSeconds = duration
-                                isRestTimerRunning = true
+                                // Using global timer in ViewModel
+                                viewModel.startRestTimer(duration)
                             }
                         )
                     }
@@ -177,17 +161,6 @@ fun WorkoutDetailScreen(
                     }
 
                     item { Spacer(modifier = Modifier.height(100.dp)) }
-                }
-
-                if (isRestTimerRunning) {
-                    Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).padding(innerPadding)) {
-                        BottomTimerBar(
-                            secondsRemaining = restTimerSeconds,
-                            onSkip = { isRestTimerRunning = false },
-                            onAdd15 = { restTimerSeconds += 15 },
-                            onSub15 = { if (restTimerSeconds > 15) restTimerSeconds -= 15 else restTimerSeconds = 0 }
-                        )
-                    }
                 }
 
                 // 3. SELECTION DIALOG
