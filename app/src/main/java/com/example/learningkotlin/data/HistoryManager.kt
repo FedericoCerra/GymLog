@@ -8,10 +8,17 @@ import java.io.File
 
 object HistoryManager {
     private const val FILE_NAME = "workout_history.json"
+    
+    // Modern JSON configuration to handle model changes gracefully
+    private val json = Json { 
+        ignoreUnknownKeys = true 
+        coerceInputValues = true
+        encodeDefaults = true
+    }
 
     fun saveFinishedWorkout(context: Context, workout: FinishedWorkout) {
         val history = loadHistory(context).toMutableList()
-        history.add(0, workout) // Add to top
+        history.add(0, workout)
         saveHistory(context, history)
     }
 
@@ -23,7 +30,7 @@ object HistoryManager {
 
     private fun saveHistory(context: Context, history: List<FinishedWorkout>) {
         try {
-            val jsonString = Json.encodeToString(history)
+            val jsonString = json.encodeToString(history)
             val file = File(context.filesDir, FILE_NAME)
             file.writeText(jsonString)
         } catch (e: Exception) {
@@ -37,7 +44,7 @@ object HistoryManager {
 
         return try {
             val jsonString = file.readText()
-            Json.decodeFromString(jsonString)
+            json.decodeFromString<List<FinishedWorkout>>(jsonString)
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

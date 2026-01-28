@@ -8,5 +8,6 @@ data class Exercise(
     val sets: MutableList<WorkoutSet>,
     var restTimer: Int = 90,
     var imagePath: String? = null,
-    var notes: String = ""
+    var notes: String = "",
+    val primaryMuscles: List<String> = emptyList() // Added to track in history
 )
