@@ -27,10 +27,11 @@ import com.example.learningkotlin.model.WorkoutSet
 fun SetRow(
     index: Int,
     set: WorkoutSet,
+    isWorkoutActive: Boolean, // <--- ADDED: Control visibility
     onDelete: () -> Unit,
     onCheck: (Boolean) -> Unit
 ) {
-    // 1. Initialize State (Handle 0.0 case)
+    // 1. Initialize State
     var weightText by remember(set.weight) {
         mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString().removeSuffix(".0"))
     }
@@ -72,7 +73,7 @@ fun SetRow(
             }
         }
 
-        // 2. Previous (Hyphen)
+        // 2. Previous
         Text(
             text = "-",
             modifier = Modifier.weight(2f),
@@ -85,7 +86,6 @@ fun SetRow(
             value = weightText,
             onValueChange = {
                 weightText = it
-                // UPDATE DATA SILENTLY (Don't call onUpdate() here)
                 set.weight = it.toDoubleOrNull() ?: 0.0
             },
             modifier = Modifier.weight(1.5f)
@@ -96,26 +96,27 @@ fun SetRow(
             value = repsText,
             onValueChange = {
                 repsText = it
-                // UPDATE DATA SILENTLY
                 set.reps = it.toIntOrNull() ?: 0
             },
             modifier = Modifier.weight(1.5f)
         )
 
-        // 5. Checkbox
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            Surface(
-                onClick = {
-                    isChecked = !isChecked
-                    set.isDone = isChecked
-                    onCheck(isChecked) // Triggers save/timer
-                },
-                shape = RoundedCornerShape(4.dp),
-                color = if (isChecked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(28.dp)
-            ) {
-                if (isChecked) {
-                    Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
+        // 5. Checkbox (Only visible if workout is ACTIVE)
+        if (isWorkoutActive) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Surface(
+                    onClick = {
+                        isChecked = !isChecked
+                        set.isDone = isChecked
+                        onCheck(isChecked)
+                    },
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isChecked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    if (isChecked) {
+                        Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
+                    }
                 }
             }
         }
@@ -129,15 +130,13 @@ private fun TableInput(
     modifier: Modifier,
     placeholder: String = "0"
 ) {
-    // LAYOUT FIX: Use a fixed height box so it doesn't jump
     Box(
         modifier = modifier
             .padding(horizontal = 4.dp)
-            .height(36.dp) // <--- Fixed height fixes the layout jitter
+            .height(36.dp)
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center
     ) {
-        // Placeholder (Gray "0")
         if (value.isEmpty()) {
             Text(
                 text = placeholder,
@@ -147,7 +146,6 @@ private fun TableInput(
             )
         }
 
-        // Actual Input
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -155,17 +153,17 @@ private fun TableInput(
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold // Make user text slightly bolder
+                fontWeight = FontWeight.Bold
             ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next // 'Next' button instead of 'Enter'
+                imeAction = ImeAction.Next
             ),
             singleLine = true,
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp) // Internal padding
+                .padding(horizontal = 8.dp)
         )
     }
 }

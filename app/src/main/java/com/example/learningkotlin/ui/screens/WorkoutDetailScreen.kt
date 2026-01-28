@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.Workout
@@ -47,34 +46,40 @@ fun WorkoutDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(workout.name) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    if (workout.isActive) {
-                        TextButton(onClick = { onFinishWorkout(); refreshTrigger++ }) {
-                            Text("FINISH", color = MaterialTheme.colorScheme.primary)
+    // Force recomposition of the whole Scaffold when refreshTrigger changes
+    key(refreshTrigger) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(workout.name) },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
-                    } else {
-                        Button(onClick = { onStartWorkout(); refreshTrigger++ }) {
-                            Text("START")
+                    },
+                    actions = {
+                        if (workout.isActive) {
+                            TextButton(onClick = { 
+                                onFinishWorkout() 
+                                refreshTrigger++ 
+                            }) {
+                                Text("FINISH", color = MaterialTheme.colorScheme.primary)
+                            }
+                        } else {
+                            Button(onClick = { 
+                                onStartWorkout() 
+                                refreshTrigger++ 
+                            }) {
+                                Text("START")
+                            }
                         }
                     }
-                }
-            )
-        }
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier.fillMaxSize()) {
 
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-
-            // 1. The Scrollable List
-            key(refreshTrigger) {
+                // 1. The Scrollable List
                 LazyColumn(
                     modifier = Modifier
                         .padding(innerPadding)
@@ -97,6 +102,7 @@ fun WorkoutDetailScreen(
                     items(workout.exercises) { exercise ->
                         ExerciseCard(
                             exercise = exercise,
+                            isWorkoutActive = workout.isActive, // Pass active state down
                             onUpdate = { refreshTrigger++ },
                             onRemove = {
                                 workout.exercises.remove(exercise)
@@ -129,54 +135,54 @@ fun WorkoutDetailScreen(
 
                     item { Spacer(modifier = Modifier.height(100.dp)) }
                 }
-            }
 
-            // 2. The Bottom Timer Popup
-            if (isTimerRunning) {
-                Box(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).padding(innerPadding)
-                ) {
-                    BottomTimerBar(
-                        secondsRemaining = timerSeconds,
-                        onSkip = { isTimerRunning = false },
-                        onAdd15 = { timerSeconds += 15 },
-                        onSub15 = { if (timerSeconds > 15) timerSeconds -= 15 else timerSeconds = 0 }
+                // 2. The Bottom Timer Popup
+                if (isTimerRunning) {
+                    Box(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).padding(innerPadding)
+                    ) {
+                        BottomTimerBar(
+                            secondsRemaining = timerSeconds,
+                            onSkip = { isTimerRunning = false },
+                            onAdd15 = { timerSeconds += 15 },
+                            onSub15 = { if (timerSeconds > 15) timerSeconds -= 15 else timerSeconds = 0 }
+                        )
+                    }
+                }
+
+                // 3. New Exercise Dialog
+                if (showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        confirmButton = {
+                            Button(onClick = {
+                                val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
+                                val newExercise = Exercise(
+                                    id = newId,
+                                    name = newExerciseName,
+                                    sets = mutableListOf(WorkoutSet(1, 0.0, 0, false)),
+                                    restTimer = 90
+                                )
+                                workout.exercises.add(newExercise)
+                                refreshTrigger++
+                                newExerciseName = ""
+                                showDialog = false
+                            }) { Text("Add") }
+                        },
+                        title = { Text("New Exercise") },
+                        text = {
+                            TextField(
+                                value = newExerciseName,
+                                onValueChange = { newExerciseName = it },
+                                label = { Text("Name") },
+                                singleLine = true
+                            )
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                        }
                     )
                 }
-            }
-
-            // 3. New Exercise Dialog
-            if (showDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDialog = false },
-                    confirmButton = {
-                        Button(onClick = {
-                            val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
-                            val newExercise = Exercise(
-                                id = newId,
-                                name = newExerciseName,
-                                sets = mutableListOf(WorkoutSet(1, 0.0, 0, false)),
-                                restTimer = 90
-                            )
-                            workout.exercises.add(newExercise)
-                            refreshTrigger++
-                            newExerciseName = ""
-                            showDialog = false
-                        }) { Text("Add") }
-                    },
-                    title = { Text("New Exercise") },
-                    text = {
-                        TextField(
-                            value = newExerciseName,
-                            onValueChange = { newExerciseName = it },
-                            label = { Text("Name") },
-                            singleLine = true
-                        )
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDialog = false }) { Text("Cancel") }
-                    }
-                )
             }
         }
     }
