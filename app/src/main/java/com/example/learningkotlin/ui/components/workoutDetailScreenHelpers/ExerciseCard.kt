@@ -15,7 +15,7 @@ import com.example.learningkotlin.model.WorkoutSet
 @Composable
 fun ExerciseCard(
     exercise: Exercise,
-    isWorkoutActive: Boolean,  // <--- ADDED: To hide/show checkboxes
+    isWorkoutActive: Boolean,
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
     onStartTimer: (Int) -> Unit
@@ -48,7 +48,6 @@ fun ExerciseCard(
                 HeaderLabel("PREVIOUS", Modifier.weight(2f))
                 HeaderLabel("KG", Modifier.weight(1.5f))
                 HeaderLabel("REPS", Modifier.weight(1.5f))
-                // Only show checkbox label if active
                 if (isWorkoutActive) {
                     Spacer(modifier = Modifier.weight(1f)) 
                 }
@@ -60,12 +59,13 @@ fun ExerciseCard(
                     SetRow(
                         index = index + 1,
                         set = set,
-                        isWorkoutActive = isWorkoutActive, // <--- Pass down
+                        isWorkoutActive = isWorkoutActive,
                         onDelete = {
                             exercise.sets.remove(set)
                             onRemove()
                         },
                         onCheck = { isChecked ->
+                            onUpdate() // <--- Added: Trigger update when checking/unchecking
                             if (isChecked) onStartTimer(exercise.restTimer)
                         }
                     )
