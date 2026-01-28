@@ -52,4 +52,8 @@ object ExerciseLibrary {
     fun getAllMuscles(): List<String> {
         return definitions.flatMap { it.primaryMuscles }.distinct().sorted()
     }
+
+    fun getAllEquipment(): List<String> {
+        return definitions.mapNotNull { it.equipment }.distinct().sorted()
+    }
 }
