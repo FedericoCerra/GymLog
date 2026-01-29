@@ -131,13 +131,13 @@ fun BottomTimerBar(
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
-                        progress = 1f,
+                        progress = { 1f },
                         modifier = Modifier.fillMaxSize(),
                         color = Color.White.copy(alpha = 0.05f),
                         strokeWidth = 3.dp
                     )
                     CircularProgressIndicator(
-                        progress = animatedProgress, // Fixed: Using Float for immediate reactivity
+                        progress = { animatedProgress },
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 3.dp,
