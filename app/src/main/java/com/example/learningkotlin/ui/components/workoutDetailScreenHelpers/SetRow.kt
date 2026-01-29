@@ -32,7 +32,8 @@ fun SetRow(
     set: WorkoutSet,
     isWorkoutActive: Boolean,
     onDelete: () -> Unit,
-    onCheck: (Boolean) -> Unit
+    onCheck: (Boolean) -> Unit,
+    onValueChange: () -> Unit = {}
 ) {
     // 1. Initialize State
     var weightText by remember(set.weight) {
@@ -92,6 +93,7 @@ fun SetRow(
             onValueChange = {
                 weightText = it
                 set.weight = it.toDoubleOrNull() ?: 0.0
+                onValueChange()
             },
             modifier = Modifier.weight(1.5f),
             imeAction = ImeAction.Next
@@ -103,6 +105,7 @@ fun SetRow(
             onValueChange = {
                 repsText = it
                 set.reps = it.toIntOrNull() ?: 0
+                onValueChange()
             },
             modifier = Modifier.weight(1.5f),
             imeAction = ImeAction.Done

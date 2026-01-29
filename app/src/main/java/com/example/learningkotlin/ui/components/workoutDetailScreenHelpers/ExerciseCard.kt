@@ -82,7 +82,8 @@ fun ExerciseCard(
                             onCheck = { isChecked ->
                                 onUpdate() 
                                 if (isChecked) onStartTimer(exercise.restTimer)
-                            }
+                            },
+                            onValueChange = { onUpdate() }
                         )
                     }
                 }
