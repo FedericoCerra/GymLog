@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Timeline
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +60,9 @@ fun WorkoutHistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item { HistoryDashboard(history) }
+                
+                item { ConsistencyHeatmapCard(history) }
+
                 item {
                     Text(
                         text = "Recent Workouts",
@@ -83,21 +88,25 @@ fun WorkoutHistoryScreen(
 
 @Composable
 fun HistoryDashboard(history: List<FinishedWorkout>) {
+    val totalWorkouts by remember { derivedStateOf { history.size } }
+    val totalVolume by remember { derivedStateOf { history.sumOf { it.totalVolume } } }
+    val totalDurationHours by remember { derivedStateOf { history.sumOf { it.durationSeconds } / 3600 } }
+
+    val volumeDisplay by remember {
+        derivedStateOf {
+            when {
+                totalVolume >= 1_000_000 -> "%.1fM kg".format(totalVolume / 1_000_000.0)
+                totalVolume >= 1_000 -> "${(totalVolume / 1_000).toInt()}k kg"
+                else -> "${totalVolume.toInt()} kg"
+            }
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            val totalWorkouts = history.size
-            val totalVolume = history.sumOf { it.totalVolume }
-            val totalDurationHours = history.sumOf { it.durationSeconds } / 3600
-
-            val volumeDisplay = when {
-                totalVolume >= 1_000_000 -> "%.1fM kg".format(totalVolume / 1_000_000.0)
-                totalVolume >= 1_000 -> "${(totalVolume / 1_000).toInt()}k kg"
-                else -> "${totalVolume.toInt()} kg"
-            }
-
             item { QuickStatCard("Total Workouts", totalWorkouts.toString()) }
             item { QuickStatCard("Total Volume", volumeDisplay) }
             item { QuickStatCard("Time Spent", "${totalDurationHours}h") }
@@ -122,29 +131,24 @@ fun QuickStatCard(label: String, value: String) {
 
 @Composable
 fun VolumeGraphCard(history: List<FinishedWorkout>) {
-    val stats = remember(history) {
-        (0..6).map { dayOffset ->
-            val cal = Calendar.getInstance()
-            cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
-            
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            val dayStart = cal.timeInMillis
-            
-            cal.set(Calendar.HOUR_OF_DAY, 23)
-            cal.set(Calendar.MINUTE, 59)
-            cal.set(Calendar.SECOND, 59)
-            cal.set(Calendar.MILLISECOND, 999)
-            val dayEnd = cal.timeInMillis
-            
-            val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
-            val dayName = SimpleDateFormat("EEE", Locale.getDefault()).format(cal.time)
-            dayName to dayVolume
-        }.reversed()
+    val stats by remember {
+        derivedStateOf {
+            (0..6).map { dayOffset ->
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
+                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+                val dayStart = cal.timeInMillis
+                cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
+                val dayEnd = cal.timeInMillis
+                
+                val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
+                // Use shorter day names and ensure they fit
+                val dayName = SimpleDateFormat("EE", Locale.getDefault()).format(cal.time).replace(".", "").uppercase()
+                dayName to dayVolume
+            }.reversed()
+        }
     }
-
+    
     val maxVolume = stats.maxOf { it.second }.coerceAtLeast(1.0)
 
     Card(
@@ -160,7 +164,7 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
             }
             Spacer(modifier = Modifier.height(24.dp))
             Row(
-                modifier = Modifier.fillMaxWidth().height(130.dp), // Height adjusted
+                modifier = Modifier.fillMaxWidth().height(120.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -170,10 +174,7 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.weight(1f).fillMaxHeight()
                     ) {
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.BottomCenter) {
                             Box(
                                 modifier = Modifier
                                     .width(18.dp)
@@ -189,29 +190,19 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
                             else -> ""
                         }
                         
-                        // Volume number container with fixed height to prevent label shifting
-                        Box(
-                            modifier = Modifier.height(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.height(16.dp), contentAlignment = Alignment.Center) {
                             if (volumeText.isNotEmpty()) {
-                                Text(
-                                    text = volumeText,
-                                    fontSize = 8.sp,
-                                    color = Color.Gray,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(text = volumeText, fontSize = 8.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
                             }
                         }
                         
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = day.replace(".", "").uppercase(), 
+                            text = day, 
                             fontSize = 9.sp, 
                             color = if (volume > 0) Color.White else Color.Gray,
                             textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            softWrap = false
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -221,24 +212,135 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
 }
 
 @Composable
-fun MuscleDistributionCard(history: List<FinishedWorkout>) {
-    val muscleCounts = remember(history) {
-        history.flatMap { workout ->
-            workout.exercises.flatMap { exercise ->
-                if (exercise.primaryMuscles.isNotEmpty()) {
-                    exercise.primaryMuscles
-                } else {
-                    ExerciseLibrary.getDefinitions()
-                        .find { it.name.equals(exercise.name, ignoreCase = true) }
-                        ?.primaryMuscles ?: emptyList()
+fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
+    val workoutDates by remember {
+        derivedStateOf {
+            history.map { 
+                val cal = Calendar.getInstance()
+                cal.timeInMillis = it.date
+                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+                cal.timeInMillis
+            }.toSet()
+        }
+    }
+
+    // Dynamic locale-aware day labels (Single letter initials)
+    val dayLabels = remember {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        (0..6).map {
+            SimpleDateFormat("EEEEE", Locale.getDefault()).format(cal.time).uppercase()
+                .also { cal.add(Calendar.DAY_OF_YEAR, 1) }
+        }
+    }
+    
+    val weeksToShow = 6
+    val weekLabelWidth = 24.dp
+    val squareSize = 10.dp
+    val gap = 4.dp
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("CONSISTENCY", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Header Row with day initials - aligned with squares
+                Row(
+                    modifier = Modifier.padding(start = weekLabelWidth + gap, bottom = 4.dp), 
+                    horizontalArrangement = Arrangement.spacedBy(gap)
+                ) {
+                    dayLabels.forEach { label ->
+                        Text(
+                            text = label, 
+                            color = Color.Gray, 
+                            fontSize = 8.sp, 
+                            modifier = Modifier.width(squareSize), 
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Grid of workouts - Weeks are horizontal rows
+                Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                    (weeksToShow - 1 downTo 0).forEach { weekOffset ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "W${weeksToShow - weekOffset}", 
+                                color = Color.DarkGray, 
+                                fontSize = 8.sp, 
+                                modifier = Modifier.width(weekLabelWidth),
+                                fontWeight = FontWeight.Medium
+                            )
+                            
+                            (0..6).forEach { dayIndex ->
+                                val cal = Calendar.getInstance()
+                                val currentDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+                                val daysSinceMonday = (currentDayOfWeek - Calendar.MONDAY + 7) % 7
+                                cal.add(Calendar.DAY_OF_YEAR, -daysSinceMonday)
+                                cal.add(Calendar.WEEK_OF_YEAR, -weekOffset)
+                                cal.add(Calendar.DAY_OF_YEAR, dayIndex)
+                                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+                                
+                                val dayTimestamp = cal.timeInMillis
+                                val hasWorkout = workoutDates.contains(dayTimestamp)
+                                val isToday = dayTimestamp == Calendar.getInstance().apply { 
+                                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                                }.timeInMillis
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(squareSize)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(
+                                            when {
+                                                hasWorkout -> HevyBlue
+                                                isToday -> Color.DarkGray.copy(alpha = 0.5f)
+                                                else -> Color.DarkGray.copy(alpha = 0.15f)
+                                            }
+                                        )
+                                )
+                            }
+                        }
+                    }
                 }
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Activity over the last $weeksToShow weeks", fontSize = 9.sp, color = Color.Gray)
         }
-        .groupingBy { it }
-        .eachCount()
-        .toList()
-        .sortedByDescending { it.second }
-        .take(6)
+    }
+}
+
+@Composable
+fun MuscleDistributionCard(history: List<FinishedWorkout>) {
+    val muscleCounts by remember {
+        derivedStateOf {
+            history.flatMap { workout ->
+                workout.exercises.flatMap { exercise ->
+                    if (exercise.primaryMuscles.isNotEmpty()) {
+                        exercise.primaryMuscles
+                    } else {
+                        ExerciseLibrary.getDefinitions()
+                            .find { it.name.equals(exercise.name, ignoreCase = true) }
+                            ?.primaryMuscles ?: emptyList()
+                    }
+                }
+            }
+            .groupingBy { it }
+            .eachCount()
+            .toList()
+            .sortedByDescending { it.second }
+            .take(6)
+        }
     }
 
     Card(
@@ -255,15 +357,33 @@ fun MuscleDistributionCard(history: List<FinishedWorkout>) {
                 muscleCounts.forEach { (muscle, count) ->
                     val totalSets = muscleCounts.sumOf { it.second }
                     val percentage = count.toFloat() / totalSets
-                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(muscle.replaceFirstChar { it.uppercase() }, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("${(percentage * 100).toInt()}%", color = Color.Gray, fontSize = 12.sp)
+                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(), 
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = muscle.replaceFirstChar { it.uppercase() }, 
+                                color = Color.White, 
+                                fontSize = 13.sp, 
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${(percentage * 100).toInt()}%", 
+                                color = Color.Gray, 
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         LinearProgressIndicator(
                             progress = { percentage },
-                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                             color = HevyBlue,
                             trackColor = Color.DarkGray.copy(alpha = 0.3f)
                         )
