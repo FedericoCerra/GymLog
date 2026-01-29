@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-//todo profiles
+//todo fix consistency tab
 //todo better workout history
+//todo profiles
 //todo database!

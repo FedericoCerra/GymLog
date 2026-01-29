@@ -1,6 +1,7 @@
 package com.example.learningkotlin.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,11 +21,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.ui.theme.HevyBlue
 import com.example.learningkotlin.ui.components.common.StatCard
@@ -114,7 +113,6 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
             item { StatCard("Time Spent", "${totalDurationHours}h") }
         }
         VolumeGraphCard(history)
-        MuscleDistributionCard(history)
     }
 }
 
@@ -201,30 +199,40 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
 
 @Composable
 fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
-    val workoutDates by remember {
-        derivedStateOf {
-            history.map { 
-                val cal = Calendar.getInstance()
-                cal.timeInMillis = it.date
-                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-                cal.timeInMillis
-            }.toSet()
-        }
+    val workoutDates = remember(history) {
+        history.map {
+            val cal = Calendar.getInstance().apply {
+                timeInMillis = it.date
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }
+            cal.timeInMillis
+        }.toSet()
     }
 
-    val dayLabels = remember {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-        (0..6).map {
-            SimpleDateFormat("EEEEE", Locale.getDefault()).format(cal.time).uppercase()
-                .also { cal.add(Calendar.DAY_OF_YEAR, 1) }
+    val weeksToShow = 5
+    val daysOfWeek = listOf("M", "T", "W", "T", "F", "S", "S")
+
+    val gridData = remember(history) {
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val currentDayOfWeek = today.get(Calendar.DAY_OF_WEEK)
+        val diffToMonday = if (currentDayOfWeek == Calendar.SUNDAY) -6 else Calendar.MONDAY - currentDayOfWeek
+        val currentMonday = today.clone() as Calendar
+        currentMonday.add(Calendar.DAY_OF_YEAR, diffToMonday)
+
+        // Generating weeks from oldest to newest
+        (0 until weeksToShow).map { weekIndex ->
+            val weekMonday = currentMonday.clone() as Calendar
+            weekMonday.add(Calendar.WEEK_OF_YEAR, -(weeksToShow - 1 - weekIndex))
+            
+            (0 until 7).map { dayIndex ->
+                val day = weekMonday.clone() as Calendar
+                day.add(Calendar.DAY_OF_YEAR, dayIndex)
+                day.timeInMillis
+            }
         }
     }
-    
-    val weeksToShow = 6
-    val weekLabelWidth = 24.dp
-    val squareSize = 10.dp
-    val gap = 4.dp
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -235,145 +243,72 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("CONSISTENCY", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
+                Text("CONSISTENCY", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
             }
-            Spacer(modifier = Modifier.height(16.dp))
             
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Header for Days of the Week
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Spacer(modifier = Modifier.width(70.dp)) // Label space matching Row labels
+                daysOfWeek.forEach { day ->
+                    Text(
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        color = Color.DarkGray,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Rows (Weeks) - Oldest at top, Current at bottom
+            gridData.forEachIndexed { index, week ->
+                val weekOffset = weeksToShow - 1 - index
                 Row(
-                    modifier = Modifier.padding(start = weekLabelWidth + gap, bottom = 4.dp), 
-                    horizontalArrangement = Arrangement.spacedBy(gap)
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    dayLabels.forEach { label ->
-                        Text(
-                            text = label, 
-                            color = Color.Gray, 
-                            fontSize = 8.sp, 
-                            modifier = Modifier.width(squareSize), 
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.Bold
+                    Text(
+                        text = when(weekOffset) {
+                            0 -> "THIS WEEK"
+                            1 -> "1W AGO"
+                            else -> "${weekOffset}W AGO"
+                        },
+                        color = Color.DarkGray,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(70.dp)
+                    )
+
+                    week.forEach { timestamp ->
+                        val hasWorkout = workoutDates.contains(timestamp)
+                        val isToday = timestamp == Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(26.dp)
+                                .padding(horizontal = 3.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (hasWorkout) HevyBlue else Color(0xFF2C2C2E))
+                                .let { 
+                                    if (isToday) it.border(1.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                    else it
+                                }
                         )
                     }
                 }
-
-                Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                    (weeksToShow - 1 downTo 0).forEach { weekOffset ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "W${weeksToShow - weekOffset}", 
-                                color = Color.DarkGray, 
-                                fontSize = 8.sp, 
-                                modifier = Modifier.width(weekLabelWidth),
-                                fontWeight = FontWeight.Medium
-                            )
-                            
-                            (0..6).forEach { dayIndex ->
-                                val cal = Calendar.getInstance()
-                                val currentDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-                                val daysSinceMonday = (currentDayOfWeek - Calendar.MONDAY + 7) % 7
-                                cal.add(Calendar.DAY_OF_YEAR, -daysSinceMonday)
-                                cal.add(Calendar.WEEK_OF_YEAR, -weekOffset)
-                                cal.add(Calendar.DAY_OF_YEAR, dayIndex)
-                                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-                                
-                                val dayTimestamp = cal.timeInMillis
-                                val hasWorkout = workoutDates.contains(dayTimestamp)
-                                val isToday = dayTimestamp == Calendar.getInstance().apply { 
-                                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-                                }.timeInMillis
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(squareSize)
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .background(
-                                            when {
-                                                hasWorkout -> HevyBlue
-                                                isToday -> Color.DarkGray.copy(alpha = 0.5f)
-                                                else -> Color.DarkGray.copy(alpha = 0.15f)
-                                            }
-                                        )
-                                )
-                            }
-                        }
-                    }
-                }
             }
+            
             Spacer(modifier = Modifier.height(12.dp))
-            Text("Activity over the last $weeksToShow weeks", fontSize = 9.sp, color = Color.Gray)
-        }
-    }
-}
-
-@Composable
-fun MuscleDistributionCard(history: List<FinishedWorkout>) {
-    val muscleCounts by remember {
-        derivedStateOf {
-            history.flatMap { workout ->
-                workout.exercises.flatMap { exercise ->
-                    if (exercise.primaryMuscles.isNotEmpty()) {
-                        exercise.primaryMuscles
-                    } else {
-                        ExerciseLibrary.getDefinitions()
-                            .find { it.name.equals(exercise.name, ignoreCase = true) }
-                            ?.primaryMuscles ?: emptyList()
-                    }
-                }
-            }
-            .groupingBy { it }
-            .eachCount()
-            .toList()
-            .sortedByDescending { it.second }
-            .take(6)
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("MUSCLE DISTRIBUTION", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
-            if (muscleCounts.isEmpty()) {
-                Text("No data yet", color = Color.DarkGray, fontSize = 12.sp)
-            } else {
-                muscleCounts.forEach { (muscle, count) ->
-                    val totalSets = muscleCounts.sumOf { it.second }
-                    val percentage = count.toFloat() / totalSets
-                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(), 
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Bottom
-                        ) {
-                            Text(
-                                text = muscle.replaceFirstChar { it.uppercase() }, 
-                                color = Color.White, 
-                                fontSize = 13.sp, 
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${(percentage * 100).toInt()}%", 
-                                color = Color.Gray, 
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = { percentage },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                            color = HevyBlue,
-                            trackColor = Color.DarkGray.copy(alpha = 0.3f)
-                        )
-                    }
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text("LAST 5 WEEKS", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -131,6 +131,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         history = listOf(finished) + history
         lastFinishedWorkout = finished
 
+        // Cancel rest timer if it's running
+        skipTimer()
+
         // Reset current workout in the list
         workouts = workouts.map {
             if (it.id == target.id) {
