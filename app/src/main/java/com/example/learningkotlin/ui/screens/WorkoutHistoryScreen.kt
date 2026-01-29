@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.ui.theme.HevyBlue
+import com.example.learningkotlin.ui.components.common.StatCard
+import com.example.learningkotlin.ui.components.common.StatItem
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -107,25 +109,12 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            item { QuickStatCard("Total Workouts", totalWorkouts.toString()) }
-            item { QuickStatCard("Total Volume", volumeDisplay) }
-            item { QuickStatCard("Time Spent", "${totalDurationHours}h") }
+            item { StatCard("Total Workouts", totalWorkouts.toString()) }
+            item { StatCard("Total Volume", volumeDisplay) }
+            item { StatCard("Time Spent", "${totalDurationHours}h") }
         }
         VolumeGraphCard(history)
         MuscleDistributionCard(history)
-    }
-}
-
-@Composable
-fun QuickStatCard(label: String, value: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp).widthIn(min = 100.dp)) {
-            Text(label.uppercase(), fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-        }
     }
 }
 
@@ -142,7 +131,6 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
                 val dayEnd = cal.timeInMillis
                 
                 val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
-                // Use shorter day names and ensure they fit
                 val dayName = SimpleDateFormat("EE", Locale.getDefault()).format(cal.time).replace(".", "").uppercase()
                 dayName to dayVolume
             }.reversed()
@@ -224,7 +212,6 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
         }
     }
 
-    // Dynamic locale-aware day labels (Single letter initials)
     val dayLabels = remember {
         val cal = Calendar.getInstance()
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
@@ -253,7 +240,6 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
             Spacer(modifier = Modifier.height(16.dp))
             
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Header Row with day initials - aligned with squares
                 Row(
                     modifier = Modifier.padding(start = weekLabelWidth + gap, bottom = 4.dp), 
                     horizontalArrangement = Arrangement.spacedBy(gap)
@@ -270,7 +256,6 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
                     }
                 }
 
-                // Grid of workouts - Weeks are horizontal rows
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                     (weeksToShow - 1 downTo 0).forEach { weekOffset ->
                         Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
@@ -431,19 +416,11 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                HistoryStatItem("Volume", "${workout.totalVolume.toInt()} kg")
-                HistoryStatItem("Sets", workout.totalSets.toString())
+                StatItem("Volume", "${workout.totalVolume.toInt()} kg")
+                StatItem("Sets", workout.totalSets.toString())
                 val m = workout.durationSeconds / 60
-                HistoryStatItem("Duration", "${m}m")
+                StatItem("Duration", "${m}m")
             }
         }
-    }
-}
-
-@Composable
-fun HistoryStatItem(label: String, value: String) {
-    Column {
-        Text(text = label.uppercase(), fontSize = 10.sp, color = Color.Gray, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold)
-        Text(text = value, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White)
     }
 }

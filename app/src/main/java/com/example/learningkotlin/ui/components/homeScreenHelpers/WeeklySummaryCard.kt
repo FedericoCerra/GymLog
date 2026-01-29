@@ -5,8 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,29 +24,32 @@ fun WeeklySummaryCard(
     history: List<FinishedWorkout>,
     onClick: () -> Unit
 ) {
-    val stats = remember(history) {
-        val cal = Calendar.getInstance()
-        // Get start of 7 days ago
-        cal.add(Calendar.DAY_OF_YEAR, -6)
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0)
-        val rangeStart = cal.timeInMillis
+    // Use derivedStateOf to ensure stats update whenever the history list content changes
+    val stats by remember(history) {
+        derivedStateOf {
+            val cal = Calendar.getInstance()
+            // Get start of 7 days ago
+            cal.add(Calendar.DAY_OF_YEAR, -6)
+            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0)
+            val rangeStart = cal.timeInMillis
 
-        val workoutsThisWeek = history.count { it.date >= rangeStart }
+            val workoutsThisWeek = history.count { it.date >= rangeStart }
 
-        val dayData = (0..6).map { offset ->
-            val checkCal = Calendar.getInstance()
-            checkCal.add(Calendar.DAY_OF_YEAR, -(6 - offset))
-            val start = checkCal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
-            val end = checkCal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
+            val dayData = (0..6).map { offset ->
+                val checkCal = Calendar.getInstance()
+                checkCal.add(Calendar.DAY_OF_YEAR, -(6 - offset))
+                val start = checkCal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
+                val end = checkCal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
+                
+                val hasWorkout = history.any { it.date in start..end }
+                val dayInitial = SimpleDateFormat("EEEEE", Locale.getDefault()).format(checkCal.time).uppercase()
+                val isToday = offset == 6
+                
+                Triple(dayInitial, hasWorkout, isToday)
+            }
             
-            val hasWorkout = history.any { it.date in start..end }
-            val dayInitial = SimpleDateFormat("EEEEE", Locale.getDefault()).format(checkCal.time).uppercase()
-            val isToday = offset == 6
-            
-            Triple(dayInitial, hasWorkout, isToday)
+            Pair(workoutsThisWeek, dayData)
         }
-        
-        Pair(workoutsThisWeek, dayData)
     }
 
     val workoutsCount = stats.first

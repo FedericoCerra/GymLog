@@ -1,38 +1,29 @@
 package com.example.learningkotlin.viewmodel
 
 import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningkotlin.data.ExerciseLibrary
-import com.example.learningkotlin.data.HistoryManager
-import com.example.learningkotlin.data.WorkoutManager
-import com.example.learningkotlin.model.Exercise
+import com.example.learningkotlin.data.repository.HistoryRepository
+import com.example.learningkotlin.data.repository.WorkoutRepository
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.Workout
-import com.example.learningkotlin.model.WorkoutSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
-    // 1. STATE: The list of workouts
-    val workouts = WorkoutManager.loadWorkouts(application.applicationContext).toMutableStateList()
     
-    // History state
-    var history = HistoryManager.loadHistory(application.applicationContext).toMutableStateList()
+    private val workoutRepository = WorkoutRepository(application)
+    private val historyRepository = HistoryRepository(application)
+
+    // 1. STATE - Using mutableStateOf<List> for better reactivity on whole-list updates
+    var workouts by mutableStateOf<List<Workout>>(emptyList())
         private set
-
-    // Initialize Exercise Library
-    init {
-        ExerciseLibrary.load(application.applicationContext)
-    }
-
-    // 2. TIMER STATE (Now global to the app)
+    var history by mutableStateOf<List<FinishedWorkout>>(emptyList())
+        private set
+    
     var restTimerSeconds by mutableIntStateOf(0)
         private set
     var initialRestTimerSeconds by mutableIntStateOf(0) 
@@ -41,105 +32,121 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         private set
     private var timerJob: Job? = null
 
-    // For Recap navigation
     var lastFinishedWorkout by mutableStateOf<FinishedWorkout?>(null)
         private set
 
-    // 3. HELPER: Save to file
-    private fun save() = WorkoutManager.saveWorkouts(getApplication(), workouts)
+    init {
+        ExerciseLibrary.load(application)
+        loadInitialData()
+    }
 
-    // 4. EVENT HANDLERS / LOGIC
+    private fun loadInitialData() {
+        viewModelScope.launch {
+            workouts = workoutRepository.getWorkouts()
+            history = historyRepository.getHistory()
+        }
+    }
+
+    fun saveRoutines() {
+        viewModelScope.launch {
+            workoutRepository.saveWorkouts(workouts)
+        }
+    }
+
+    // 2. ROUTINE CRUD
     fun addWorkout(name: String) {
         val newId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
-        workouts.add(Workout(newId, name, mutableListOf()))
-        save()
+        workouts = workouts + Workout(newId, name, mutableListOf())
+        saveRoutines()
     }
 
     fun deleteWorkout(workout: Workout) {
-        workouts.remove(workout)
-        save()
+        workouts = workouts.filter { it.id != workout.id }
+        saveRoutines()
     }
 
     fun renameWorkout(workout: Workout, newName: String) {
-        workouts.find { it.id == workout.id }?.name = newName
-        save()
+        workouts = workouts.map { 
+            if (it.id == workout.id) it.copy(name = newName) else it 
+        }
+        saveRoutines()
     }
 
+    // 3. HISTORY CRUD
     fun updateFinishedWorkout(updatedWorkout: FinishedWorkout) {
-        val index = history.indexOfFirst { it.id == updatedWorkout.id }
-        if (index != -1) {
-            history[index] = updatedWorkout
-            HistoryManager.updateWorkout(getApplication(), updatedWorkout)
+        history = history.map {
+            if (it.id == updatedWorkout.id) updatedWorkout else it
+        }
+        viewModelScope.launch {
+            historyRepository.updateWorkout(updatedWorkout)
         }
     }
 
     fun deleteFinishedWorkout(workoutId: Int) {
-        history.removeAll { it.id == workoutId }
-        HistoryManager.deleteWorkout(getApplication(), workoutId)
+        history = history.filter { it.id != workoutId }
+        viewModelScope.launch {
+            historyRepository.deleteWorkout(workoutId)
+        }
     }
 
+    // 4. WORKOUT SESSION LOGIC
     fun startWorkout(workout: Workout): Boolean {
         if (workouts.any { it.isActive }) return false
 
-        val target = workouts.find { it.id == workout.id }
-        target?.let {
-            it.isActive = true
-            it.startTime = System.currentTimeMillis()
-            save()
-            return true
+        workouts = workouts.map {
+            if (it.id == workout.id) it.copy(isActive = true, startTime = System.currentTimeMillis()) else it
         }
-        return false
+        saveRoutines()
+        return true
     }
 
     fun finishWorkout(workout: Workout) {
-        val target = workouts.find { it.id == workout.id }
-        target?.let {
-            val now = System.currentTimeMillis()
-            val duration = (now - (it.startTime ?: now)) / 1000
-            
-            // Calculate stats for history
-            val totalSets = it.exercises.sumOf { ex -> ex.sets.count { s -> s.isDone } }
-            val totalVolume = it.exercises.sumOf { ex -> ex.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } }
-            
-            val finished = FinishedWorkout(
-                id = (history.maxOfOrNull { h -> h.id } ?: 0) + 1,
-                name = it.name,
-                date = now,
-                durationSeconds = duration,
-                totalVolume = totalVolume,
-                totalSets = totalSets,
-                exercises = it.exercises.map { ex -> 
-                    val def = ExerciseLibrary.getDefinitions().find { d -> d.name == ex.name }
-                    ex.copy(
-                        sets = ex.sets.filter { s -> s.isDone }.toMutableList(),
-                        primaryMuscles = def?.primaryMuscles ?: emptyList()
-                    )
-                }.filter { ex -> ex.sets.isNotEmpty() }
-            )
-            
-            HistoryManager.saveFinishedWorkout(getApplication(), finished)
-            history.add(0, finished)
-            lastFinishedWorkout = finished
-
-            // Reset current workout
-            it.isActive = false
-            it.startTime = null
-            // Reset "isDone" for next time
-            it.exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
-            
-            save()
+        val target = workouts.find { it.id == workout.id } ?: return
+        
+        val now = System.currentTimeMillis()
+        val duration = (now - (target.startTime ?: now)) / 1000
+        
+        val totalSets = target.exercises.sumOf { ex -> ex.sets.count { s -> s.isDone } }
+        val totalVolume = target.exercises.sumOf { ex -> ex.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } }
+        
+        val finished = FinishedWorkout(
+            id = (history.maxOfOrNull { h -> h.id } ?: 0) + 1,
+            name = target.name,
+            date = now,
+            durationSeconds = duration,
+            totalVolume = totalVolume,
+            totalSets = totalSets,
+            exercises = target.exercises.map { ex -> 
+                val def = ExerciseLibrary.getDefinitions().find { d -> d.name == ex.name }
+                ex.copy(
+                    sets = ex.sets.filter { s -> s.isDone }.toMutableList(),
+                    primaryMuscles = def?.primaryMuscles ?: emptyList()
+                )
+            }.filter { ex -> ex.sets.isNotEmpty() }
+        )
+        
+        viewModelScope.launch {
+            historyRepository.saveFinishedWorkout(finished)
         }
-    }
+        history = listOf(finished) + history
+        lastFinishedWorkout = finished
 
-    fun clearLastFinishedWorkout() {
-        lastFinishedWorkout = null
+        // Reset current workout in the list
+        workouts = workouts.map {
+            if (it.id == target.id) {
+                it.copy(isActive = false, startTime = null).apply {
+                    exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
+                }
+            } else it
+        }
+        saveRoutines()
     }
 
     fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
         return workouts.any { it.isActive && it.id != currentWorkoutId }
     }
 
-    // --- TIMER LOGIC ---
+    // 5. TIMER LOGIC
     fun startRestTimer(seconds: Int) {
         timerJob?.cancel()
         initialRestTimerSeconds = seconds
@@ -176,6 +183,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onDetailScreenExit() {
-        save()
+        saveRoutines()
     }
 }
