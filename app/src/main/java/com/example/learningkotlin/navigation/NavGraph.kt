@@ -5,8 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +42,15 @@ fun NavGraph(
     var selectedHistoryWorkout by remember { mutableStateOf<FinishedWorkout?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
+    
+    // Improved selection logic using hierarchy
+    val isRoutinesSelected = currentDestination?.hierarchy?.any { 
+        it.route == "home" || it.route?.startsWith("detail/") == true 
+    } == true
+    val isHistorySelected = currentDestination?.hierarchy?.any { it.route == "history" } == true
+
     val showBottomBar = currentRoute in listOf("home", "history", "detail/{workoutId}")
 
     val barColor = Color(0xFF0F0F0F)
@@ -67,7 +75,14 @@ fun NavGraph(
                         HomeScreen(
                             viewModel = homeViewModel,
                             onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
-                            onSummaryClick = { navController.navigate("history") },
+                            onSummaryClick = {
+                                // FIX: Use same logic as bottom bar to keep nav consistent
+                                navController.navigate("history") {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
                             bottomBarPadding = totalBottomOffset
                         )
                     }
@@ -79,7 +94,8 @@ fun NavGraph(
                                 selectedHistoryWorkout = workout
                                 navController.navigate("history_recap")
                             },
-                            onDeleteWorkout = { id -> homeViewModel.deleteFinishedWorkout(id) }
+                            onDeleteWorkout = { id -> homeViewModel.deleteFinishedWorkout(id) },
+                            bottomBarPadding = totalBottomOffset // Pass padding to history list
                         )
                     }
 
@@ -138,7 +154,7 @@ fun NavGraph(
                 if (homeViewModel.isRestTimerRunning) {
                     Box(modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = totalBottomOffset + 12.dp) 
+                        .padding(bottom = totalBottomOffset + 8.dp) 
                     ) {
                         BottomTimerBar(
                             secondsRemaining = homeViewModel.restTimerSeconds,
@@ -158,7 +174,7 @@ fun NavGraph(
                     .fillMaxWidth()
                     .height(totalBottomOffset)
                     .align(Alignment.BottomCenter)
-                    .background(barColor)
+                    .background(barColor) 
             ) {
                 Row(
                     modifier = Modifier
@@ -168,11 +184,10 @@ fun NavGraph(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val isHomeSelected = currentRoute == "home" || currentRoute?.startsWith("detail/") == true
                     CustomBottomNavItem(
                         icon = Icons.Default.FitnessCenter,
                         label = "Routines",
-                        selected = isHomeSelected,
+                        selected = isRoutinesSelected,
                         onClick = {
                             navController.navigate("home") {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -182,9 +197,8 @@ fun NavGraph(
                         }
                     )
 
-                    val isHistorySelected = currentRoute == "history"
                     CustomBottomNavItem(
-                        icon = Icons.Default.List,
+                        icon = Icons.AutoMirrored.Filled.List,
                         label = "History",
                         selected = isHistorySelected,
                         onClick = {

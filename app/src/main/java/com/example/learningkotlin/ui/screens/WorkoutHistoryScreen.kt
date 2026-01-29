@@ -16,9 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
@@ -31,7 +31,8 @@ import java.util.*
 fun WorkoutHistoryScreen(
     history: List<FinishedWorkout>,
     onWorkoutClick: (FinishedWorkout) -> Unit,
-    onDeleteWorkout: (Int) -> Unit
+    onDeleteWorkout: (Int) -> Unit,
+    bottomBarPadding: Dp = 0.dp // Added parameter
 ) {
     Scaffold(
         topBar = {
@@ -54,12 +55,7 @@ fun WorkoutHistoryScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. COMPREHENSIVE ANALYSIS SECTION
-                item {
-                    HistoryDashboard(history)
-                }
-
-                // 2. RECENT WORKOUTS TITLE
+                item { HistoryDashboard(history) }
                 item {
                     Text(
                         text = "Recent Workouts",
@@ -70,7 +66,6 @@ fun WorkoutHistoryScreen(
                     )
                 }
 
-                // 3. HISTORY ITEMS
                 items(history, key = { it.id }) { workout ->
                     HistoryItem(
                         workout = workout, 
@@ -78,16 +73,17 @@ fun WorkoutHistoryScreen(
                         onDelete = { onDeleteWorkout(workout.id) }
                     )
                 }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+                // Ensure last item is above bottom bar
+                item { Spacer(modifier = Modifier.height(bottomBarPadding + 32.dp)) }
             }
         }
     }
 }
 
+// ... the rest of the file stays the same (Dashboard, Stats, HistoryItem etc.)
 @Composable
 fun HistoryDashboard(history: List<FinishedWorkout>) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // A. QUICK STATS ROW
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
@@ -100,11 +96,7 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
             item { QuickStatCard("Total Volume", "${totalVolume / 1000}k kg") }
             item { QuickStatCard("Time Spent", "${totalDurationHours}h") }
         }
-
-        // B. VOLUME GRAPH CARD
         VolumeGraphCard(history)
-
-        // C. MUSCLE DISTRIBUTION CARD
         MuscleDistributionCard(history)
     }
 }
@@ -129,7 +121,6 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
         cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
         val dayStart = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
         val dayEnd = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
-        
         val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
         val sdf = SimpleDateFormat("EEE", Locale.getDefault())
         sdf.format(cal.time) to dayVolume
@@ -148,9 +139,7 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("WEEKLY VOLUME", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
             }
-            
             Spacer(modifier = Modifier.height(24.dp))
-            
             Row(
                 modifier = Modifier.fillMaxWidth().height(100.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -177,14 +166,13 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
 
 @Composable
 fun MuscleDistributionCard(history: List<FinishedWorkout>) {
-    // Extract muscle data from all finished workouts
     val muscleCounts = history.flatMap { it.exercises }
         .flatMap { it.primaryMuscles }
         .groupingBy { it }
         .eachCount()
         .toList()
         .sortedByDescending { it.second }
-        .take(5) // Top 5 muscles
+        .take(5)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -194,14 +182,12 @@ fun MuscleDistributionCard(history: List<FinishedWorkout>) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("MUSCLE DISTRIBUTION", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
-            
             if (muscleCounts.isEmpty()) {
                 Text("No data yet", color = Color.DarkGray, fontSize = 12.sp)
             } else {
                 muscleCounts.forEach { (muscle, count) ->
                     val totalSets = muscleCounts.sumOf { it.second }
                     val percentage = count.toFloat() / totalSets
-                    
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(muscle.replaceFirstChar { it.uppercase() }, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -209,7 +195,7 @@ fun MuscleDistributionCard(history: List<FinishedWorkout>) {
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         LinearProgressIndicator(
-                            progress = percentage,
+                            progress = { percentage },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                             color = HevyBlue,
                             trackColor = Color.DarkGray.copy(alpha = 0.3f)
@@ -221,7 +207,6 @@ fun MuscleDistributionCard(history: List<FinishedWorkout>) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> Unit) {
     val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(workout.date))
@@ -244,7 +229,6 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
                     Text(text = workout.name, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
                     Text(text = "$dayStr, $dateStr", color = Color.Gray, fontSize = 12.sp)
                 }
-                
                 Box {
                     IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
                         Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Gray)
@@ -253,21 +237,13 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
                         DropdownMenuItem(
                             text = { Text("Delete Workout", color = MaterialTheme.colorScheme.error) },
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                            onClick = { 
-                                onDelete()
-                                showMenu = false 
-                            }
+                            onClick = { onDelete(); showMenu = false }
                         )
                     }
                 }
             }
-            
             Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 HistoryStatItem("Volume", "${workout.totalVolume.toInt()} kg")
                 HistoryStatItem("Sets", workout.totalSets.toString())
                 val m = workout.durationSeconds / 60
