@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.ui.theme.HevyBlue
 import java.text.SimpleDateFormat
@@ -32,7 +34,7 @@ fun WorkoutHistoryScreen(
     history: List<FinishedWorkout>,
     onWorkoutClick: (FinishedWorkout) -> Unit,
     onDeleteWorkout: (Int) -> Unit,
-    bottomBarPadding: Dp = 0.dp // Added parameter
+    bottomBarPadding: Dp = 0.dp
 ) {
     Scaffold(
         topBar = {
@@ -73,14 +75,12 @@ fun WorkoutHistoryScreen(
                         onDelete = { onDeleteWorkout(workout.id) }
                     )
                 }
-                // Ensure last item is above bottom bar
                 item { Spacer(modifier = Modifier.height(bottomBarPadding + 32.dp)) }
             }
         }
     }
 }
 
-// ... the rest of the file stays the same (Dashboard, Stats, HistoryItem etc.)
 @Composable
 fun HistoryDashboard(history: List<FinishedWorkout>) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -89,11 +89,17 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
             modifier = Modifier.fillMaxWidth()
         ) {
             val totalWorkouts = history.size
-            val totalVolume = history.sumOf { it.totalVolume }.toInt()
+            val totalVolume = history.sumOf { it.totalVolume }
             val totalDurationHours = history.sumOf { it.durationSeconds } / 3600
 
+            val volumeDisplay = when {
+                totalVolume >= 1_000_000 -> "%.1fM kg".format(totalVolume / 1_000_000.0)
+                totalVolume >= 1_000 -> "${(totalVolume / 1_000).toInt()}k kg"
+                else -> "${totalVolume.toInt()} kg"
+            }
+
             item { QuickStatCard("Total Workouts", totalWorkouts.toString()) }
-            item { QuickStatCard("Total Volume", "${totalVolume / 1000}k kg") }
+            item { QuickStatCard("Total Volume", volumeDisplay) }
             item { QuickStatCard("Time Spent", "${totalDurationHours}h") }
         }
         VolumeGraphCard(history)
@@ -116,15 +122,28 @@ fun QuickStatCard(label: String, value: String) {
 
 @Composable
 fun VolumeGraphCard(history: List<FinishedWorkout>) {
-    val stats = (0..6).map { dayOffset ->
-        val cal = Calendar.getInstance()
-        cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
-        val dayStart = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
-        val dayEnd = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
-        val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
-        val sdf = SimpleDateFormat("EEE", Locale.getDefault())
-        sdf.format(cal.time) to dayVolume
-    }.reversed()
+    val stats = remember(history) {
+        (0..6).map { dayOffset ->
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
+            
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            val dayStart = cal.timeInMillis
+            
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+            val dayEnd = cal.timeInMillis
+            
+            val dayVolume = history.filter { it.date in dayStart..dayEnd }.sumOf { it.totalVolume }
+            val dayName = SimpleDateFormat("EEE", Locale.getDefault()).format(cal.time)
+            dayName to dayVolume
+        }.reversed()
+    }
 
     val maxVolume = stats.maxOf { it.second }.coerceAtLeast(1.0)
 
@@ -141,22 +160,59 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
             }
             Spacer(modifier = Modifier.height(24.dp))
             Row(
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier.fillMaxWidth().height(130.dp), // Height adjusted
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
                 stats.forEach { (day, volume) ->
                     val barHeight = (volume / maxVolume).toFloat()
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    ) {
                         Box(
-                            modifier = Modifier
-                                .width(14.dp)
-                                .fillMaxHeight(barHeight.coerceIn(0.05f, 1f))
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(if (volume > 0) HevyBlue else Color.DarkGray.copy(alpha = 0.3f))
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(18.dp)
+                                    .fillMaxHeight(barHeight.coerceIn(0.05f, 1f))
+                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                    .background(if (volume > 0) HevyBlue else Color.DarkGray.copy(alpha = 0.3f))
+                            )
+                        }
+                        
+                        val volumeText = when {
+                            volume >= 1000 -> "${(volume / 1000).toInt()}k"
+                            volume > 0 -> volume.toInt().toString()
+                            else -> ""
+                        }
+                        
+                        // Volume number container with fixed height to prevent label shifting
+                        Box(
+                            modifier = Modifier.height(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (volumeText.isNotEmpty()) {
+                                Text(
+                                    text = volumeText,
+                                    fontSize = 8.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = day.replace(".", "").uppercase(), 
+                            fontSize = 9.sp, 
+                            color = if (volume > 0) Color.White else Color.Gray,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(day.uppercase(), fontSize = 9.sp, color = if (volume > 0) Color.White else Color.Gray)
                     }
                 }
             }
@@ -166,13 +222,24 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
 
 @Composable
 fun MuscleDistributionCard(history: List<FinishedWorkout>) {
-    val muscleCounts = history.flatMap { it.exercises }
-        .flatMap { it.primaryMuscles }
+    val muscleCounts = remember(history) {
+        history.flatMap { workout ->
+            workout.exercises.flatMap { exercise ->
+                if (exercise.primaryMuscles.isNotEmpty()) {
+                    exercise.primaryMuscles
+                } else {
+                    ExerciseLibrary.getDefinitions()
+                        .find { it.name.equals(exercise.name, ignoreCase = true) }
+                        ?.primaryMuscles ?: emptyList()
+                }
+            }
+        }
         .groupingBy { it }
         .eachCount()
         .toList()
         .sortedByDescending { it.second }
-        .take(5)
+        .take(6)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),

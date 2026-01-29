@@ -165,7 +165,8 @@ fun WorkoutDetailScreen(
                                 name = def.name, 
                                 sets = mutableListOf(WorkoutSet(1, 0.0, 0, false)), 
                                 restTimer = 90,
-                                imagePath = if (def.images.isNotEmpty()) def.images[0] else null // Save image path!
+                                imagePath = if (def.images.isNotEmpty()) def.images[0] else null,
+                                primaryMuscles = def.primaryMuscles // POPULATE MUSCLES
                             )
                         )
                         refreshTrigger++

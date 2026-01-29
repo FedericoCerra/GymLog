@@ -109,7 +109,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 totalVolume = totalVolume,
                 totalSets = totalSets,
                 exercises = it.exercises.map { ex -> 
-                    ex.copy(sets = ex.sets.filter { s -> s.isDone }.toMutableList()) 
+                    val def = ExerciseLibrary.getDefinitions().find { d -> d.name == ex.name }
+                    ex.copy(
+                        sets = ex.sets.filter { s -> s.isDone }.toMutableList(),
+                        primaryMuscles = def?.primaryMuscles ?: emptyList()
+                    )
                 }.filter { ex -> ex.sets.isNotEmpty() }
             )
             
