@@ -3,6 +3,7 @@ package com.example.learningkotlin.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -221,6 +222,7 @@ fun WorkoutDetailScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FullScreenExercisePicker(
     onDismiss: () -> Unit,
@@ -295,40 +297,61 @@ fun FullScreenExercisePicker(
                     (selectedEquipment == null || it.equipment == selectedEquipment)
                 }
 
+                val grouped = filtered.groupBy { it.primaryMuscles.firstOrNull()?.uppercase() ?: "OTHER" }
+                    .toSortedMap()
+
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(filtered, key = { it.id }) { def ->
-                        ListItem(
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            headlineContent = { Text(def.name, fontWeight = FontWeight.Bold, color = Color.White) },
-                            supportingContent = { 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = Color.Gray)
-                                    if (def.equipment != null) {
-                                        Text(" • ", color = Color.DarkGray)
-                                        Text(def.equipment.uppercase(), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                    grouped.forEach { (muscle, exercises) ->
+                        stickyHeader {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF1C1C1E))
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = muscle,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        
+                        items(exercises, key = { it.id }) { def ->
+                            ListItem(
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                headlineContent = { Text(def.name, fontWeight = FontWeight.Bold, color = Color.White) },
+                                supportingContent = { 
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = Color.Gray)
+                                        if (def.equipment != null) {
+                                            Text(" • ", color = Color.DarkGray)
+                                            Text(def.equipment.uppercase(), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                        }
                                     }
-                                }
-                            },
-                            leadingContent = {
-                                if (def.images.isNotEmpty()) {
-                                    AsyncImage(
-                                        model = "file:///android_asset/exercises/${def.images[0]}",
-                                        contentDescription = null,
-                                        modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Box(modifier = Modifier.size(56.dp).background(Color(0xFF1C1C1E), RoundedCornerShape(8.dp)))
-                                }
-                            },
-                            trailingContent = {
-                                IconButton(onClick = { onShowInfo(def) }) {
-                                    Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                                }
-                            },
-                            modifier = Modifier.clickable { onExerciseSelected(def) }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.DarkGray.copy(alpha = 0.3f))
+                                },
+                                leadingContent = {
+                                    if (def.images.isNotEmpty()) {
+                                        AsyncImage(
+                                            model = "file:///android_asset/exercises/${def.images[0]}",
+                                            contentDescription = null,
+                                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Box(modifier = Modifier.size(56.dp).background(Color(0xFF1C1C1E), RoundedCornerShape(8.dp)))
+                                    }
+                                },
+                                trailingContent = {
+                                    IconButton(onClick = { onShowInfo(def) }) {
+                                        Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                    }
+                                },
+                                modifier = Modifier.clickable { onExerciseSelected(def) }
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.DarkGray.copy(alpha = 0.3f))
+                        }
                     }
                 }
             }
