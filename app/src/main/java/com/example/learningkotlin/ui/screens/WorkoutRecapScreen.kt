@@ -7,10 +7,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,10 +19,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
+import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.TimeWheelPicker
 import com.example.learningkotlin.ui.theme.HevyBlue
@@ -39,7 +48,22 @@ fun WorkoutRecapScreen(
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    
+
+    // Calculate Muscle Distribution
+    val muscleDistribution = remember(finishedWorkout, refreshTrigger) {
+        val counts = mutableMapOf<String, Int>()
+        finishedWorkout.exercises.forEach { exercise ->
+            val setCount = exercise.sets.size
+            exercise.primaryMuscles.forEach { muscle ->
+                counts[muscle] = (counts[muscle] ?: 0) + setCount
+            }
+        }
+        val totalSets = counts.values.sum().toFloat()
+        counts.map { (muscle, count) ->
+            muscle to (if (totalSets > 0) count / totalSets else 0f)
+        }.sortedByDescending { it.second }
+    }
+
     // Formatting Helpers
     fun formatDuration(seconds: Long): String {
         val h = seconds / 3600
@@ -57,12 +81,15 @@ fun WorkoutRecapScreen(
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Black)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         },
         containerColor = Color.Black
     ) { padding ->
-        // Force recomposition when data changes
         key(refreshTrigger) {
             LazyColumn(
                 modifier = Modifier
@@ -73,38 +100,37 @@ fun WorkoutRecapScreen(
             ) {
                 // 1. Celebration Header
                 item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(colors = listOf(HevyGreen, HevyGreen.copy(alpha = 0.6f)))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Check, null, modifier = Modifier.size(48.dp), tint = Color.White)
-                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Icon(
+                        Icons.Default.CheckCircle, 
+                        contentDescription = null, 
+                        modifier = Modifier.size(64.dp), 
+                        tint = HevyGreen
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Workout Complete!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
                     Text(text = finishedWorkout.name, style = MaterialTheme.typography.titleLarge, color = HevyBlue, fontWeight = FontWeight.Bold)
-                    
-                    // CLICKABLE DATE
-                    val dateStr = SimpleDateFormat("EEEE, MMM d 'at' HH:mm", Locale.getDefault()).format(Date(finishedWorkout.date))
+
+                    // DATE WITH EDIT ICON - Forced English Locale
+                    val dateStr = SimpleDateFormat("EEEE, MMM d 'at' HH:mm", Locale.US).format(Date(finishedWorkout.date))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .padding(top = 4.dp)
+                            .padding(top = 8.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { showDatePicker = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.CalendarToday, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(text = dateStr, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(Icons.Default.Edit, null, tint = HevyBlue, modifier = Modifier.size(12.dp))
                     }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
-                // 2. Editable Stats Grid
+                // 2. Stats Grid
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -113,43 +139,53 @@ fun WorkoutRecapScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(20.dp)
+                                .padding(vertical = 20.dp)
                                 .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            EditableStatItem(
-                                label = "Duration", 
+                            StatItem(
+                                label = "Duration",
                                 value = formatDuration(finishedWorkout.durationSeconds),
-                                onClick = { showTimePicker = true }
+                                isEditable = true,
+                                onClick = { showTimePicker = true },
+                                modifier = Modifier.weight(1f)
                             )
-                            VerticalDivider(modifier = Modifier.height(40.dp).width(1.dp), color = Color.DarkGray)
-                            RecapStatItem("Volume", "${finishedWorkout.totalVolume.toInt()} kg")
-                            VerticalDivider(modifier = Modifier.height(40.dp).width(1.dp), color = Color.DarkGray)
-                            RecapStatItem("Sets", finishedWorkout.totalSets.toString())
+                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
+                            StatItem(
+                                label = "Volume",
+                                value = "${finishedWorkout.totalVolume.toInt()} kg",
+                                modifier = Modifier.weight(1f)
+                            )
+                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
+                            StatItem(
+                                label = "Sets",
+                                value = finishedWorkout.totalSets.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
 
-                items(finishedWorkout.exercises) { exercise ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = exercise.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = HevyBlue)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            exercise.sets.forEachIndexed { index, set ->
-                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                    Text(text = "${index + 1}", modifier = Modifier.weight(1f), color = Color.White, fontSize = 14.sp)
-                                    Text(text = "${set.weight.toInt()} kg x ${set.reps}", modifier = Modifier.weight(3f), textAlign = androidx.compose.ui.text.style.TextAlign.End, color = Color.LightGray, fontSize = 14.sp)
-                                }
-                            }
-                        }
+                // 3. Muscle Distribution Graph
+                if (muscleDistribution.isNotEmpty()) {
+                    item {
+                        MuscleDistributionSection(muscleDistribution)
                     }
                 }
-                
+
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                // 4. Exercise List
+                items(finishedWorkout.exercises) { exercise ->
+                    RecapExerciseItem(
+                        exercise = exercise,
+                        onUpdate = { 
+                            onSave?.invoke(finishedWorkout)
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
@@ -166,9 +202,6 @@ fun WorkoutRecapScreen(
         }
     }
 
-    // --- MODIFICATION DIALOGS ---
-
-    // 1. DATE PICKER (Now Preserves Original Time)
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = finishedWorkout.date)
         DatePickerDialog(
@@ -178,25 +211,18 @@ fun WorkoutRecapScreen(
                     datePickerState.selectedDateMillis?.let { newDateMillis ->
                         val oldCalendar = Calendar.getInstance().apply { timeInMillis = finishedWorkout.date }
                         val newCalendar = Calendar.getInstance().apply { timeInMillis = newDateMillis }
-                        
-                        // Copy the specific time (HH:MM:SS) from original workout
                         newCalendar.set(Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY))
                         newCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE))
-                        newCalendar.set(Calendar.SECOND, oldCalendar.get(Calendar.SECOND))
-                        
                         finishedWorkout.date = newCalendar.timeInMillis
                         onSave?.invoke(finishedWorkout)
-                        refreshTrigger++ // Force immediate UI update
+                        refreshTrigger++
                     }
                     showDatePicker = false
                 }) { Text("Confirm") }
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        ) { DatePicker(state = datePickerState) }
     }
 
-    // 2. MODERN VERTICAL WHEEL DURATION PICKER
     if (showTimePicker) {
         Dialog(onDismissRequest = { showTimePicker = false }) {
             Card(
@@ -209,32 +235,24 @@ fun WorkoutRecapScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("Edit Duration", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = Color.White)
-                    Text("Select hours and minutes spent training", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    
                     Spacer(modifier = Modifier.height(32.dp))
-
                     var tempSeconds by remember { mutableLongStateOf(finishedWorkout.durationSeconds) }
-                    
                     TimeWheelPicker(
                         initialTotalSeconds = tempSeconds.toInt(),
                         isHoursMode = true,
                         onTimeChange = { tempSeconds = it.toLong() }
                     )
-
                     Spacer(modifier = Modifier.height(32.dp))
-
                     Button(
-                        onClick = { 
+                        onClick = {
                             finishedWorkout.durationSeconds = tempSeconds
                             onSave?.invoke(finishedWorkout)
-                            refreshTrigger++ // Force immediate UI update
-                            showTimePicker = false 
+                            refreshTrigger++
+                            showTimePicker = false
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text("Save Duration", fontWeight = FontWeight.Bold)
-                    }
+                    ) { Text("Save Duration", fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -242,23 +260,162 @@ fun WorkoutRecapScreen(
 }
 
 @Composable
-fun EditableStatItem(label: String, value: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() }
-            .padding(4.dp)
-    ) {
-        Text(text = label.uppercase(), style = MaterialTheme.typography.labelSmall, color = HevyBlue, letterSpacing = 1.sp)
-        Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
+        Text(
+            text = "MUSCLE DISTRIBUTION",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        muscleDistribution.forEach { (muscle, percentage) ->
+            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = muscle, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "${(percentage * 100).toInt()}%", color = Color.Gray, fontSize = 13.sp)
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1C1C1E))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(percentage)
+                            .fillMaxHeight()
+                            .background(HevyBlue)
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun RecapStatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Color.Gray, letterSpacing = 1.sp)
-        Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+fun StatItem(
+    label: String,
+    value: String,
+    isEditable: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(4.dp) else Modifier)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                letterSpacing = 1.sp
+            )
+            if (isEditable) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(Icons.Default.Edit, null, tint = HevyBlue, modifier = Modifier.size(10.dp))
+            }
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun RecapExerciseItem(
+    exercise: Exercise,
+    onUpdate: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    val isImeVisible = WindowInsets.isImeVisible
+    var localNotes by remember(exercise.notes) { mutableStateOf(exercise.notes) }
+
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible) {
+            focusManager.clearFocus()
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(42.dp).clip(CircleShape).background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                val imagePath = exercise.imagePath
+                if (imagePath != null) {
+                    val coilModel = if (imagePath.startsWith("http")) imagePath else "file:///android_asset/exercises/$imagePath"
+                    AsyncImage(
+                        model = coilModel, 
+                        contentDescription = null, 
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(Icons.Default.FitnessCenter, null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = exercise.name, color = HevyBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                
+                BasicTextField(
+                    value = localNotes,
+                    onValueChange = { 
+                        localNotes = it
+                        exercise.notes = it
+                        onUpdate()
+                    },
+                    textStyle = TextStyle(
+                        color = Color.Gray,
+                        fontSize = 13.sp,
+                        fontStyle = FontStyle.Italic
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    cursorBrush = SolidColor(HevyBlue),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { innerTextField ->
+                        if (localNotes.isEmpty()) {
+                            Text("Add notes...", color = Color.DarkGray, fontSize = 13.sp, fontStyle = FontStyle.Italic)
+                        }
+                        innerTextField()
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+            Text(text = "SET", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+            Text(text = "WEIGHT & REPS", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        exercise.sets.forEachIndexed { index, set ->
+            val isEven = index % 2 == 0
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isEven) Color.Transparent else Color(0xFF1C1C1E))
+                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "${index + 1}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.width(60.dp))
+                val weightStr = set.weight.toString().removeSuffix(".0")
+                Text(text = "$weightStr kg x ${set.reps}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
     }
 }

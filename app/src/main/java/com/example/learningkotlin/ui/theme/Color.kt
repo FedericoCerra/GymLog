@@ -19,4 +19,6 @@ val HevyLightGrey = Color(0xFF8E8E93)   // Secondary Text (Labels like "KG")
 
 // 4. Status Colors
 val HevyGreen = Color(0xFF34C759)       // Success / Done
-val HevyRed = Color(0xFFFF3B30)         // Delete / Error
+val HevyRed = Color(0xFFFF3B30)         // Delete / Error / Failure Set
+val HevyOrange = Color(0xFFFFA500)      // Warmup Set
+val HevyPurple = Color(0xFFAF52DE)      // Drop Set
