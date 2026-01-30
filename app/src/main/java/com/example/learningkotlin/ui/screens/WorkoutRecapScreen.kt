@@ -433,9 +433,35 @@ fun RecapExerciseItem(
                     modifier = Modifier.width(60.dp),
                     textAlign = TextAlign.Start
                 )
-
+                
                 val weightStr = set.weight.toString().removeSuffix(".0")
-                Text(text = "$weightStr kg x ${set.reps}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "$weightStr kg x ${set.reps}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    
+                    if (set.isWeightPR || set.is1RMPR || set.isVolumePR) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Star, 
+                                null, 
+                                tint = Color(0xFFFFD700), 
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            val prLabels = mutableListOf<String>()
+                            if (set.isWeightPR) prLabels.add("WEIGHT")
+                            if (set.is1RMPR) prLabels.add("1RM")
+                            if (set.isVolumePR) prLabels.add("VOL")
+                            
+                            Text(
+                                text = prLabels.joinToString(" & "),
+                                color = Color(0xFFFFD700),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+                }
             }
         }
     }

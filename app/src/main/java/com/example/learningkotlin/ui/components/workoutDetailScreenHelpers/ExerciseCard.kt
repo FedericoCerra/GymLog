@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.WorkoutSet
+import com.example.learningkotlin.viewmodel.ExercisePersonalBests
 
 @Composable
 fun ExerciseCard(
@@ -21,7 +22,8 @@ fun ExerciseCard(
     onReplace: () -> Unit,
     onStartTimer: (Int) -> Unit,
     onInfoClick: () -> Unit,
-    previousSets: List<WorkoutSet> = emptyList()
+    previousSets: List<WorkoutSet> = emptyList(),
+    personalBests: ExercisePersonalBests = ExercisePersonalBests()
 ) {
     var localRefreshTrigger by remember { mutableIntStateOf(0) }
 
@@ -32,7 +34,6 @@ fun ExerciseCard(
     ) {
 
         Column(modifier = Modifier.padding(16.dp)) {
-            // Pass the primitives explicitly so Compose detects the change instantly
             key(exercise.restTimer, exercise.notes) {
                 ExerciseHeader(
                     exerciseName = exercise.name,
@@ -49,7 +50,6 @@ fun ExerciseCard(
                     onInfoClick = onInfoClick,
                     onNotesChange = { newNotes ->
                         exercise.notes = newNotes
-                        // Don't refresh trigger here to keep typing smooth
                     }
                 )
             }
@@ -85,7 +85,8 @@ fun ExerciseCard(
                             },
                             onValueChange = { onUpdate() },
                             previousWeight = prevSet?.weight,
-                            previousReps = prevSet?.reps
+                            previousReps = prevSet?.reps,
+                            personalBests = personalBests
                         )
                     }
                 }

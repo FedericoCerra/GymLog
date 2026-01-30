@@ -1,5 +1,6 @@
 package com.example.learningkotlin.ui.components.homeScreenHelpers
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.learningkotlin.model.Workout
+import com.example.learningkotlin.ui.theme.HevyBlue
 
 @Composable
 fun WorkoutListItem(
@@ -27,16 +30,20 @@ fun WorkoutListItem(
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
 
+    val containerColor = Color(0xFF1C1C1E)
+
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(
-            containerColor = if (workout.isActive) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = containerColor
         ),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (workout.isActive) Modifier.border(2.dp, HevyBlue, RoundedCornerShape(12.dp))
+                else Modifier
+            )
     ) {
         Row(
             modifier = Modifier
@@ -51,22 +58,20 @@ fun WorkoutListItem(
                         text = workout.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (workout.isActive)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurface
+                        color = Color.White
                     )
                     if (workout.isActive) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Surface(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = HevyBlue,
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
                                 text = "ACTIVE",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -74,10 +79,7 @@ fun WorkoutListItem(
                 Text(
                     text = "${workout.exercises.size} Exercises",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (workout.isActive)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.Gray
                 )
             }
 
@@ -87,10 +89,7 @@ fun WorkoutListItem(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Options",
-                        tint = if (workout.isActive)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = Color.Gray
                     )
                 }
                 DropdownMenu(

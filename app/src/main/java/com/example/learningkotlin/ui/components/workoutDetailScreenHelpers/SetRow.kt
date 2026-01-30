@@ -1,5 +1,8 @@
 package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.model.WorkoutSet
+import com.example.learningkotlin.viewmodel.ExercisePersonalBests
 
 @Composable
 fun SetRow(
@@ -36,7 +41,8 @@ fun SetRow(
     onCheck: (Boolean) -> Unit,
     onValueChange: () -> Unit = {},
     previousWeight: Double? = null,
-    previousReps: Int? = null
+    previousReps: Int? = null,
+    personalBests: ExercisePersonalBests = ExercisePersonalBests()
 ) {
     // 1. Initialize State
     var weightText by remember(set.weight) {
@@ -49,6 +55,23 @@ fun SetRow(
     var isChecked by remember { mutableStateOf(set.isDone) }
     var showMenu by remember { mutableStateOf(false) }
     var localSetType by remember(set.type) { mutableStateOf(set.type) }
+
+    // Logic: PR check (Only if checked)
+    val isWeightPR = remember(set.weight, personalBests.maxWeight, isChecked) {
+        isChecked && set.weight > personalBests.maxWeight && personalBests.maxWeight > 0
+    }
+    val is1RMPR = remember(set.weight, set.reps, personalBests.max1RM, isChecked) {
+        isChecked && set.calculate1RM() > personalBests.max1RM && personalBests.max1RM > 0
+    }
+    val isVolumePR = remember(set.weight, set.reps, personalBests.maxVolume, isChecked) {
+        isChecked && set.calculateVolume() > personalBests.maxVolume && personalBests.maxVolume > 0
+    }
+    
+    set.isWeightPR = isWeightPR
+    set.is1RMPR = is1RMPR
+    set.isVolumePR = isVolumePR
+
+    val hasAnyPR = isWeightPR || is1RMPR || isVolumePR
 
     // Validation: Only allow checking if weight > 0 and reps > 0
     val isDataValid = (set.weight > 0.0 && set.reps > 0)
@@ -155,25 +178,39 @@ fun SetRow(
         // 5. Checkbox (Only visible if workout is ACTIVE)
         if (isWorkoutActive) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Surface(
-                    onClick = {
-                        if (isDataValid) {
-                            isChecked = !isChecked
-                            set.isDone = isChecked
-                            onCheck(isChecked)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedVisibility(
+                        visible = hasAnyPR,
+                        enter = fadeIn() + scaleIn()
+                    ) {
+                        Icon(
+                            Icons.Default.Star, 
+                            null, 
+                            tint = Color(0xFFFFD700), 
+                            modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                        )
+                    }
+                    
+                    Surface(
+                        onClick = {
+                            if (isDataValid) {
+                                isChecked = !isChecked
+                                set.isDone = isChecked
+                                onCheck(isChecked)
+                            }
+                        },
+                        shape = RoundedCornerShape(4.dp),
+                        color = when {
+                            isChecked -> Color(0xFF4CAF50)
+                            !isDataValid -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        modifier = Modifier.size(28.dp),
+                        enabled = isDataValid || isChecked // Allow unchecking even if data became invalid
+                    ) {
+                        if (isChecked) {
+                            Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
                         }
-                    },
-                    shape = RoundedCornerShape(4.dp),
-                    color = when {
-                        isChecked -> Color(0xFF4CAF50)
-                        !isDataValid -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    modifier = Modifier.size(28.dp),
-                    enabled = isDataValid || isChecked // Allow unchecking even if data became invalid
-                ) {
-                    if (isChecked) {
-                        Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
                     }
                 }
             }

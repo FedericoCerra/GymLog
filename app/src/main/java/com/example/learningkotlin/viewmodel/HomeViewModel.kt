@@ -15,6 +15,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+data class ExercisePersonalBests(
+    val maxWeight: Double = 0.0,
+    val max1RM: Double = 0.0,
+    val maxVolume: Double = 0.0
+)
+
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     
     private val workoutRepository = WorkoutRepository(application)
@@ -186,6 +192,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         
         return lastWorkoutWithExercise?.exercises?.find { it.name == exerciseName }?.sets ?: emptyList()
+    }
+
+    fun getPersonalBests(exerciseName: String): ExercisePersonalBests {
+        val historicalExercises = history.flatMap { it.exercises }.filter { it.name == exerciseName }
+        val historicalSets = historicalExercises.flatMap { it.sets }
+        
+        return ExercisePersonalBests(
+            maxWeight = historicalSets.maxOfOrNull { it.weight } ?: 0.0,
+            max1RM = historicalSets.maxOfOrNull { it.calculate1RM() } ?: 0.0,
+            maxVolume = historicalSets.maxOfOrNull { it.calculateVolume() } ?: 0.0
+        )
     }
 
     // 5. TIMER LOGIC
