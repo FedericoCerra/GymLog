@@ -9,6 +9,7 @@ import com.example.learningkotlin.data.repository.HistoryRepository
 import com.example.learningkotlin.data.repository.WorkoutRepository
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.Workout
+import com.example.learningkotlin.model.WorkoutSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -147,6 +148,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
         return workouts.any { it.isActive && it.id != currentWorkoutId }
+    }
+
+    fun getPreviousSetsForExercise(exerciseName: String): List<WorkoutSet> {
+        // Find the most recent workout in history that contains this exercise
+        val lastWorkoutWithExercise = history.sortedByDescending { it.date }
+            .firstOrNull { workout -> 
+                workout.exercises.any { it.name == exerciseName } 
+            }
+        
+        return lastWorkoutWithExercise?.exercises?.find { it.name == exerciseName }?.sets ?: emptyList()
     }
 
     // 5. TIMER LOGIC

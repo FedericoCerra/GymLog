@@ -20,7 +20,8 @@ fun ExerciseCard(
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
     onStartTimer: (Int) -> Unit,
-    onInfoClick: () -> Unit
+    onInfoClick: () -> Unit,
+    previousSets: List<WorkoutSet> = emptyList()
 ) {
     var localRefreshTrigger by remember { mutableIntStateOf(0) }
 
@@ -69,6 +70,7 @@ fun ExerciseCard(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val listTrigger = trigger // Read trigger to keep list in sync
                 exercise.sets.forEachIndexed { index, set ->
+                    val prevSet = previousSets.getOrNull(index)
                     key(set.id) {
                         SetRow(
                             index = index + 1,
@@ -83,7 +85,9 @@ fun ExerciseCard(
                                 onUpdate() 
                                 if (isChecked) onStartTimer(exercise.restTimer)
                             },
-                            onValueChange = { onUpdate() }
+                            onValueChange = { onUpdate() },
+                            previousWeight = prevSet?.weight,
+                            previousReps = prevSet?.reps
                         )
                     }
                 }

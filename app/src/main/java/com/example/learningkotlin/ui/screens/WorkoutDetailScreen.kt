@@ -121,6 +121,10 @@ fun WorkoutDetailScreen(
                 }
 
                 items(workout.exercises, key = { it.id }) { exercise ->
+                    val previousSets = remember(exercise.name, viewModel.history) {
+                        viewModel.getPreviousSetsForExercise(exercise.name)
+                    }
+                    
                     ExerciseCard(
                         exercise = exercise,
                         isWorkoutActive = workout.isActive,
@@ -131,7 +135,8 @@ fun WorkoutDetailScreen(
                         onInfoClick = {
                             val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
                             if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
-                        }
+                        },
+                        previousSets = previousSets
                     )
                 }
 

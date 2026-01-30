@@ -33,7 +33,9 @@ fun SetRow(
     isWorkoutActive: Boolean,
     onDelete: () -> Unit,
     onCheck: (Boolean) -> Unit,
-    onValueChange: () -> Unit = {}
+    onValueChange: () -> Unit = {},
+    previousWeight: Double? = null,
+    previousReps: Int? = null
 ) {
     // 1. Initialize State
     var weightText by remember(set.weight) {
@@ -80,11 +82,17 @@ fun SetRow(
         }
 
         // 2. Previous
+        val previousText = if (previousWeight != null && previousReps != null) {
+            "${previousWeight.toString().removeSuffix(".0")} x $previousReps"
+        } else {
+            "-"
+        }
         Text(
-            text = "-",
+            text = previousText,
             modifier = Modifier.weight(2f),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontSize = 13.sp
         )
 
         // 3. Weight Input
