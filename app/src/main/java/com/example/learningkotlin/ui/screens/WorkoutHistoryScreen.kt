@@ -4,9 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -40,12 +38,6 @@ fun WorkoutHistoryScreen(
     bottomBarPadding: Dp = 0.dp
 ) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Workout History", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
-            )
-        },
         containerColor = Color.Black
     ) { padding ->
         if (history.isEmpty()) {
@@ -55,11 +47,21 @@ fun WorkoutHistoryScreen(
         } else {
             LazyColumn(
                 modifier = Modifier
-                    .padding(padding)
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Header - Replaces TopAppBar to save space
+                item {
+                    Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
+                    Text(
+                        text = "History",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+
                 item { HistoryDashboard(history) }
                 
                 item { ConsistencyHeatmapCard(history) }
@@ -70,7 +72,7 @@ fun WorkoutHistoryScreen(
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
@@ -104,13 +106,14 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        // Stats row - Now takes full width with equal weighting
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            item { StatCard("Total Workouts", totalWorkouts.toString()) }
-            item { StatCard("Total Volume", volumeDisplay) }
-            item { StatCard("Time Spent", "${totalDurationHours}h") }
+            StatCard("Workouts", totalWorkouts.toString(), modifier = Modifier.weight(1f))
+            StatCard("Volume", volumeDisplay, modifier = Modifier.weight(1f))
+            StatCard("Time", "${totalDurationHours}h", modifier = Modifier.weight(1f))
         }
         VolumeGraphCard(history)
     }
@@ -148,9 +151,9 @@ fun VolumeGraphCard(history: List<FinishedWorkout>) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("WEEKLY VOLUME", style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp)) // Reduced from 24
             Row(
-                modifier = Modifier.fillMaxWidth().height(120.dp),
+                modifier = Modifier.fillMaxWidth().height(110.dp), // Slightly shorter
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -221,7 +224,6 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
         val currentMonday = today.clone() as Calendar
         currentMonday.add(Calendar.DAY_OF_YEAR, diffToMonday)
 
-        // Generating weeks from oldest to newest
         (0 until weeksToShow).map { weekIndex ->
             val weekMonday = currentMonday.clone() as Calendar
             weekMonday.add(Calendar.WEEK_OF_YEAR, -(weeksToShow - 1 - weekIndex))
@@ -240,17 +242,23 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("CONSISTENCY", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("CONSISTENCY", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
+                }
+                Text("LATEST 5 WEEKS", fontSize = 9.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
             }
             
-            Spacer(modifier = Modifier.height(20.dp))
-            
+
             // Header for Days of the Week
             Row(modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.width(70.dp)) // Label space matching Row labels
+                Spacer(modifier = Modifier.width(70.dp))
                 daysOfWeek.forEach { day ->
                     Text(
                         text = day,
@@ -263,13 +271,13 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
                 }
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-            // Rows (Weeks) - Oldest at top, Current at bottom
+            // Rows (Weeks)
             gridData.forEachIndexed { index, week ->
                 val weekOffset = weeksToShow - 1 - index
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -305,11 +313,7 @@ fun ConsistencyHeatmapCard(history: List<FinishedWorkout>) {
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Text("LAST 5 WEEKS", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            }
+            Spacer(modifier = Modifier.height(6.dp))
         }
     }
 }
