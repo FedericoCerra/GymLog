@@ -52,6 +52,7 @@ fun WorkoutDetailScreen(
     isAnyOtherWorkoutActive: Boolean,
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
+    onDiscardWorkout: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
@@ -59,6 +60,7 @@ fun WorkoutDetailScreen(
     var exerciseToReplace by remember { mutableStateOf<Exercise?>(null) }
     var showInstructionsDialog by remember { mutableStateOf(false) }
     var exerciseForInstructions by remember { mutableStateOf<ExerciseDefinition?>(null) }
+    var showFinishConfirmationDialog by remember { mutableStateOf(false) }
 
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
 
@@ -94,7 +96,7 @@ fun WorkoutDetailScreen(
                 },
                 actions = {
                     if (workout.isActive) {
-                        TextButton(onClick = { onFinishWorkout(); refreshTrigger++ }) {
+                        TextButton(onClick = { showFinishConfirmationDialog = true }) {
                             Text("FINISH", color = MaterialTheme.colorScheme.primary)
                         }
                     } else {
@@ -166,6 +168,33 @@ fun WorkoutDetailScreen(
                     }
                 }
                 item { Spacer(modifier = Modifier.height(100.dp)) }
+            }
+
+            if (showFinishConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showFinishConfirmationDialog = false },
+                    title = { Text("Finish Workout") },
+                    text = { Text("Do you want to save this workout to your history or discard it?") },
+                    confirmButton = {
+                        TextButton(onClick = { 
+                            showFinishConfirmationDialog = false
+                            onFinishWorkout()
+                        }) {
+                            Text("SAVE")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { 
+                                showFinishConfirmationDialog = false
+                                onDiscardWorkout()
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("DISCARD")
+                        }
+                    }
+                )
             }
 
             if (showSelectExerciseDialog) {

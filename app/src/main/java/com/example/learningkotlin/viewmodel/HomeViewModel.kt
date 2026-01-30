@@ -101,6 +101,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
+    fun discardWorkout(workout: Workout) {
+        val target = workouts.find { it.id == workout.id } ?: return
+        
+        // Reset current workout state without saving to history
+        workouts = workouts.map {
+            if (it.id == target.id) {
+                it.copy(isActive = false, startTime = null).apply {
+                    exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
+                }
+            } else it
+        }
+        skipTimer()
+        saveRoutines()
+    }
+
     fun finishWorkout(workout: Workout) {
         val target = workouts.find { it.id == workout.id } ?: return
         

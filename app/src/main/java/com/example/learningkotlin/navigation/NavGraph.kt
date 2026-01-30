@@ -116,6 +116,10 @@ fun NavGraph(
                                     homeViewModel.finishWorkout(selectedWorkout)
                                     navController.navigate("recap") { launchSingleTop = true }
                                 },
+                                onDiscardWorkout = {
+                                    homeViewModel.discardWorkout(selectedWorkout)
+                                    navController.popBackStack("home", inclusive = false)
+                                },
                                 onBackClick = {
                                     homeViewModel.onDetailScreenExit()
                                     navController.popBackStack()
