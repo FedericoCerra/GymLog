@@ -19,6 +19,7 @@ fun ExerciseCard(
     parentRefreshTrigger: Int,
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
+    onReplace: () -> Unit,
     onStartTimer: (Int) -> Unit,
     onInfoClick: () -> Unit,
     previousSets: List<WorkoutSet> = emptyList()
@@ -42,6 +43,7 @@ fun ExerciseCard(
                     notes = exercise.notes,
                     imagePath = exercise.imagePath,
                     onDeleteExercise = { onRemove() },
+                    onReplaceExercise = { onReplace() },
                     onTimerChange = { newTime ->
                         exercise.restTimer = newTime
                         localRefreshTrigger++ 

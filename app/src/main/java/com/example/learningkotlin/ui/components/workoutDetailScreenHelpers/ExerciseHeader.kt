@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -34,6 +35,7 @@ fun ExerciseHeader(
     notes: String,
     imagePath: String?,
     onDeleteExercise: () -> Unit,
+    onReplaceExercise: () -> Unit,
     onTimerChange: (Int) -> Unit,
     onInfoClick: () -> Unit,
     onNotesChange: (String) -> Unit
@@ -120,6 +122,11 @@ fun ExerciseHeader(
                         )
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Replace Exercise") },
+                            leadingIcon = { Icon(Icons.Default.Edit, "Replace") },
+                            onClick = { onReplaceExercise(); showMenu = false }
+                        )
                         DropdownMenuItem(
                             text = { Text("Remove Exercise", color = MaterialTheme.colorScheme.error) },
                             leadingIcon = { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) },

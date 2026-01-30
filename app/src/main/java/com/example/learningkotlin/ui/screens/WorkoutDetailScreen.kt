@@ -56,6 +56,7 @@ fun WorkoutDetailScreen(
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showSelectExerciseDialog by remember { mutableStateOf(false) }
+    var exerciseToReplace by remember { mutableStateOf<Exercise?>(null) }
     var showInstructionsDialog by remember { mutableStateOf(false) }
     var exerciseForInstructions by remember { mutableStateOf<ExerciseDefinition?>(null) }
 
@@ -132,6 +133,10 @@ fun WorkoutDetailScreen(
                         parentRefreshTrigger = refreshTrigger,
                         onUpdate = { refreshTrigger++ },
                         onRemove = { workout.exercises.remove(exercise); refreshTrigger++ },
+                        onReplace = {
+                            exerciseToReplace = exercise
+                            showSelectExerciseDialog = true
+                        },
                         onStartTimer = { duration -> viewModel.startRestTimer(duration) },
                         onInfoClick = {
                             val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
@@ -143,7 +148,10 @@ fun WorkoutDetailScreen(
 
                 item {
                     Button(
-                        onClick = { showSelectExerciseDialog = true },
+                        onClick = { 
+                            exerciseToReplace = null
+                            showSelectExerciseDialog = true 
+                        },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
@@ -162,21 +170,55 @@ fun WorkoutDetailScreen(
 
             if (showSelectExerciseDialog) {
                 FullScreenExercisePicker(
-                    onDismiss = { showSelectExerciseDialog = false },
+                    onDismiss = { 
+                        showSelectExerciseDialog = false
+                        exerciseToReplace = null
+                    },
                     onExerciseSelected = { def ->
-                        val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
-                        workout.exercises.add(
-                            Exercise(
-                                id = newId, 
-                                name = def.name, 
-                                sets = mutableListOf(WorkoutSet(1, 0.0, 0, false)), 
-                                restTimer = 90,
-                                imagePath = if (def.images.isNotEmpty()) def.images[0] else null,
-                                primaryMuscles = def.primaryMuscles // POPULATE MUSCLES
+                        if (exerciseToReplace != null) {
+                            // REPLACE LOGIC: Keep sets count, update info and values from history
+                            exerciseToReplace?.let { ex ->
+                                ex.name = def.name
+                                ex.imagePath = if (def.images.isNotEmpty()) def.images[0] else null
+                                
+                                // Fetch history for the NEW exercise
+                                val historicalSets = viewModel.getPreviousSetsForExercise(def.name)
+                                
+                                // Map historical values to existing sets
+                                ex.sets.forEachIndexed { index, currentSet ->
+                                    historicalSets.getOrNull(index)?.let { histSet ->
+                                        currentSet.weight = histSet.weight
+                                        currentSet.reps = histSet.reps
+                                    } ?: run {
+                                        // If no history for this set index, reset to 0
+                                        currentSet.weight = 0.0
+                                        currentSet.reps = 0
+                                    }
+                                }
+                            }
+                        } else {
+                            // ADD LOGIC
+                            val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
+                            val historicalSets = viewModel.getPreviousSetsForExercise(def.name)
+                            
+                            // If history exists, pre-fill the first set. Otherwise 0.
+                            val initialWeight = historicalSets.firstOrNull()?.weight ?: 0.0
+                            val initialReps = historicalSets.firstOrNull()?.reps ?: 0
+
+                            workout.exercises.add(
+                                Exercise(
+                                    id = newId, 
+                                    name = def.name, 
+                                    sets = mutableListOf(WorkoutSet(1, initialWeight, initialReps, false)),
+                                    restTimer = 90,
+                                    imagePath = if (def.images.isNotEmpty()) def.images[0] else null,
+                                    primaryMuscles = def.primaryMuscles
+                                )
                             )
-                        )
+                        }
                         refreshTrigger++
                         showSelectExerciseDialog = false
+                        exerciseToReplace = null
                     },
                     onShowInfo = { def -> exerciseForInstructions = def; showInstructionsDialog = true }
                 )
