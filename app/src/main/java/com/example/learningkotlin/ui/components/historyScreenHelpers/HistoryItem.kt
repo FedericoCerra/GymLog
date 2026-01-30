@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +25,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> Unit) {
+fun HistoryItem(
+    workout: FinishedWorkout, 
+    allHistory: List<FinishedWorkout>,
+    onClick: () -> Unit, 
+    onDelete: () -> Unit
+) {
     val dateStr = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.US).format(Date(workout.date))
     var showMenu by remember { mutableStateOf(false) }
 
@@ -95,6 +101,8 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
             val previewLimit = 3
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 workout.exercises.take(previewLimit).forEach { exercise ->
+                    val isPR = isPersonalRecord(exercise.name, exercise.sets.maxOfOrNull { it.weight } ?: 0.0, workout.date, allHistory)
+                    
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -116,12 +124,42 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "${exercise.sets.size} sets ${exercise.name}",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "${exercise.sets.size} sets ${exercise.name}",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                if (isPR) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Surface(
+                                        color = Color(0xFFFFD700).copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Star, 
+                                                null, 
+                                                tint = Color(0xFFFFD700), 
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                "PR", 
+                                                color = Color(0xFFFFD700), 
+                                                fontSize = 10.sp, 
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -142,6 +180,26 @@ fun HistoryItem(workout: FinishedWorkout, onClick: () -> Unit, onDelete: () -> U
             )
         }
     }
+}
+
+private fun isPersonalRecord(
+    exerciseName: String, 
+    currentWeight: Double, 
+    currentDate: Long, 
+    allHistory: List<FinishedWorkout>
+): Boolean {
+    if (currentWeight <= 0) return false
+    
+    // Check if there's any previous workout (before current date) 
+    // where the same exercise has a weight >= currentWeight
+    val previousMax = allHistory
+        .filter { it.date < currentDate }
+        .flatMap { it.exercises }
+        .filter { it.name == exerciseName }
+        .flatMap { it.sets }
+        .maxOfOrNull { it.weight } ?: 0.0
+        
+    return currentWeight > previousMax
 }
 
 @Composable

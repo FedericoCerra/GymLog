@@ -68,6 +68,7 @@ fun WorkoutHistoryScreen(
                 items(sortedHistory, key = { it.id }) { workout ->
                     HistoryItem(
                         workout = workout, 
+                        allHistory = history,
                         onClick = { onWorkoutClick(workout) },
                         onDelete = { onDeleteWorkout(workout.id) }
                     )
