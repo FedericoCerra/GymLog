@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.model.WorkoutSet
 
 @Composable
@@ -47,6 +48,7 @@ fun SetRow(
 
     var isChecked by remember { mutableStateOf(set.isDone) }
     var showMenu by remember { mutableStateOf(false) }
+    var localSetType by remember(set.type) { mutableStateOf(set.type) }
 
     // Validation: Only allow checking if weight > 0 and reps > 0
     val isDataValid = (set.weight > 0.0 && set.reps > 0)
@@ -59,23 +61,54 @@ fun SetRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Set Number
+        // 1. Set Number and Type
         Box(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.Center
         ) {
+            val typeText = when(localSetType) {
+                SetType.NORMAL -> "$index"
+                SetType.WARMUP -> "W"
+                SetType.DROP -> "D"
+                SetType.FAILURE -> "F"
+            }
+            val typeColor = when(localSetType) {
+                SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
+                SetType.WARMUP -> Color(0xFFFFB300) // Orange
+                SetType.DROP -> Color(0xFF9C27B0) // Purple
+                SetType.FAILURE -> Color(0xFFE53935) // Red
+            }
+
             Text(
-                text = "$index",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = typeText,
+                fontWeight = FontWeight.Black,
+                color = typeColor,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showMenu = true }
             )
+            
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                SetType.values().forEach { type ->
+                    DropdownMenuItem(
+                        text = { 
+                            Text(
+                                text = type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                color = if (localSetType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        onClick = {
+                            localSetType = type
+                            set.type = type
+                            onValueChange()
+                            showMenu = false
+                        }
+                    )
+                }
+                HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Delete Set") },
+                    text = { Text("Delete Set", color = MaterialTheme.colorScheme.error) },
                     onClick = { onDelete(); showMenu = false }
                 )
             }

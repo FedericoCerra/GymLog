@@ -24,12 +24,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.FinishedWorkout
+import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.TimeWheelPicker
 import com.example.learningkotlin.ui.theme.HevyBlue
 import com.example.learningkotlin.ui.theme.HevyGreen
@@ -410,7 +412,28 @@ fun RecapExerciseItem(
                     .padding(vertical = 12.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "${index + 1}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.width(60.dp))
+                val typeText = when(set.type) {
+                    SetType.NORMAL -> "${index + 1}"
+                    SetType.WARMUP -> "W"
+                    SetType.DROP -> "D"
+                    SetType.FAILURE -> "F"
+                }
+                val typeColor = when(set.type) {
+                    SetType.NORMAL -> Color.White
+                    SetType.WARMUP -> Color(0xFFFFB300)
+                    SetType.DROP -> Color(0xFF9C27B0)
+                    SetType.FAILURE -> Color(0xFFE53935)
+                }
+
+                Text(
+                    text = typeText, 
+                    color = typeColor, 
+                    fontWeight = FontWeight.Black, 
+                    fontSize = 16.sp, 
+                    modifier = Modifier.width(60.dp),
+                    textAlign = TextAlign.Start
+                )
+
                 val weightStr = set.weight.toString().removeSuffix(".0")
                 Text(text = "$weightStr kg x ${set.reps}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
