@@ -14,9 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -33,10 +36,13 @@ import com.example.learningkotlin.ui.screens.WorkoutHistoryScreen
 import com.example.learningkotlin.ui.screens.WorkoutRecapScreen
 import com.example.learningkotlin.viewmodel.HomeViewModel
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.BottomTimerBar
+import com.example.learningkotlin.service.WorkoutOverlayService
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
+    startWorkoutId: Int? = null,
+    onStartWorkoutHandled: () -> Unit = {}
 ) {
     val homeViewModel: HomeViewModel = viewModel()
     var selectedHistoryWorkout by remember { mutableStateOf<FinishedWorkout?>(null) }
@@ -45,7 +51,55 @@ fun NavGraph(
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     
-    // Improved selection logic using hierarchy
+    // Handle navigation from overlay bubble
+    LaunchedEffect(startWorkoutId) {
+        startWorkoutId?.let { id ->
+            navController.navigate("detail/$id") {
+                popUpTo("home") { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            onStartWorkoutHandled()
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Toggle overlay visibility based on current screen AND app lifecycle
+    DisposableEffect(lifecycleOwner, currentRoute, navBackStackEntry?.arguments) {
+        val observer = LifecycleEventObserver { _, event ->
+            val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
+            val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
+            val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
+                                       workoutIdInRoute == activeWorkoutId
+
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    // Show bubble ONLY if NOT on the active workout screen
+                    WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Always show bubble when app goes to background (home screen of phone)
+                    WorkoutOverlayService.setVisibility(true)
+                }
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        // Initial check
+        val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
+        val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
+        val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
+                                   workoutIdInRoute == activeWorkoutId
+        WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val isRoutinesSelected = currentDestination?.hierarchy?.any { 
         it.route == "home" || it.route?.startsWith("detail/") == true 
     } == true
@@ -57,7 +111,7 @@ fun NavGraph(
     val density = LocalDensity.current
     val systemBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val customBarHeight = 56.dp
-    val totalBottomOffset = if (showBottomBar) customBarHeight + systemBottomPadding else 0.dp
+    val totalBottomOffset = (if (showBottomBar) customBarHeight else 0.dp) + systemBottomPadding
 
     Box(modifier = Modifier
         .fillMaxSize()
@@ -76,7 +130,6 @@ fun NavGraph(
                             viewModel = homeViewModel,
                             onWorkoutClick = { workout -> navController.navigate("detail/${workout.id}") },
                             onSummaryClick = {
-                                // FIX: Use same logic as bottom bar to keep nav consistent
                                 navController.navigate("history") {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
@@ -95,7 +148,7 @@ fun NavGraph(
                                 navController.navigate("history_recap")
                             },
                             onDeleteWorkout = { id -> homeViewModel.deleteFinishedWorkout(id) },
-                            bottomBarPadding = totalBottomOffset // Pass padding to history list
+                            bottomBarPadding = totalBottomOffset
                         )
                     }
 
@@ -155,18 +208,26 @@ fun NavGraph(
                     }
                 }
 
-                if (homeViewModel.isRestTimerRunning) {
-                    Box(modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = totalBottomOffset + 8.dp) 
-                    ) {
-                        BottomTimerBar(
-                            secondsRemaining = homeViewModel.restTimerSeconds,
-                            totalSeconds = homeViewModel.initialRestTimerSeconds,
-                            onSkip = { homeViewModel.skipTimer() },
-                            onAdd15 = { homeViewModel.add15Seconds() },
-                            onSub15 = { homeViewModel.sub15Seconds() }
-                        )
+                // Floating UI Elements (Timer)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = totalBottomOffset)
+                ) {
+                    if (homeViewModel.isRestTimerRunning) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 16.dp, start = 8.dp, end = 8.dp)
+                        ) {
+                            BottomTimerBar(
+                                secondsRemaining = homeViewModel.restTimerSeconds,
+                                totalSeconds = homeViewModel.initialRestTimerSeconds,
+                                onSkip = { homeViewModel.skipTimer() },
+                                onAdd15 = { homeViewModel.add15Seconds() },
+                                onSub15 = { homeViewModel.sub15Seconds() }
+                            )
+                        }
                     }
                 }
             }
@@ -176,7 +237,7 @@ fun NavGraph(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(totalBottomOffset)
+                    .height(customBarHeight + systemBottomPadding)
                     .align(Alignment.BottomCenter)
                     .background(barColor) 
             ) {

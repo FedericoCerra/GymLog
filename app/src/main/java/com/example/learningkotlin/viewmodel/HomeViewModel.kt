@@ -10,6 +10,7 @@ import com.example.learningkotlin.data.repository.WorkoutRepository
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.Workout
 import com.example.learningkotlin.model.WorkoutSet
+import com.example.learningkotlin.service.WorkoutOverlayService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -19,7 +20,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val workoutRepository = WorkoutRepository(application)
     private val historyRepository = HistoryRepository(application)
 
-    // 1. STATE - Using mutableStateOf<List> for better reactivity on whole-list updates
+    // 1. STATE
     var workouts by mutableStateOf<List<Workout>>(emptyList())
         private set
     var history by mutableStateOf<List<FinishedWorkout>>(emptyList())
@@ -45,6 +46,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             workouts = workoutRepository.getWorkouts()
             history = historyRepository.getHistory()
+            
+            // Resume overlay if a workout was active
+            workouts.find { it.isActive }?.let { active ->
+                WorkoutOverlayService.start(getApplication(), active.name, active.startTime ?: System.currentTimeMillis(), active.id)
+            }
         }
     }
 
@@ -94,17 +100,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun startWorkout(workout: Workout): Boolean {
         if (workouts.any { it.isActive }) return false
 
+        val startTime = System.currentTimeMillis()
         workouts = workouts.map {
-            if (it.id == workout.id) it.copy(isActive = true, startTime = System.currentTimeMillis()) else it
+            if (it.id == workout.id) it.copy(isActive = true, startTime = startTime) else it
         }
         saveRoutines()
+        
+        // Start system-wide overlay
+        WorkoutOverlayService.start(getApplication(), workout.name, startTime, workout.id)
+        
         return true
     }
 
     fun discardWorkout(workout: Workout) {
         val target = workouts.find { it.id == workout.id } ?: return
         
-        // Reset current workout state without saving to history
         workouts = workouts.map {
             if (it.id == target.id) {
                 it.copy(isActive = false, startTime = null).apply {
@@ -114,6 +124,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         skipTimer()
         saveRoutines()
+        
+        // Stop system-wide overlay
+        WorkoutOverlayService.stop(getApplication())
     }
 
     fun finishWorkout(workout: Workout) {
@@ -147,10 +160,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         history = listOf(finished) + history
         lastFinishedWorkout = finished
 
-        // Cancel rest timer if it's running
         skipTimer()
 
-        // Reset current workout in the list
         workouts = workouts.map {
             if (it.id == target.id) {
                 it.copy(isActive = false, startTime = null).apply {
@@ -159,6 +170,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             } else it
         }
         saveRoutines()
+        
+        // Stop system-wide overlay
+        WorkoutOverlayService.stop(getApplication())
     }
 
     fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
@@ -166,7 +180,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getPreviousSetsForExercise(exerciseName: String): List<WorkoutSet> {
-        // Find the most recent workout in history that contains this exercise
         val lastWorkoutWithExercise = history.sortedByDescending { it.date }
             .firstOrNull { workout -> 
                 workout.exercises.any { it.name == exerciseName } 
@@ -181,13 +194,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         initialRestTimerSeconds = seconds
         restTimerSeconds = seconds
         isRestTimerRunning = true
+        WorkoutOverlayService.updateTimer(restTimerSeconds, true)
         
         timerJob = viewModelScope.launch {
             while (restTimerSeconds > 0) {
                 delay(1000L)
                 restTimerSeconds -= 1
+                WorkoutOverlayService.updateTimer(restTimerSeconds, true)
             }
             isRestTimerRunning = false
+            WorkoutOverlayService.updateTimer(0, false)
         }
     }
 
@@ -196,16 +212,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         restTimerSeconds = 0
         initialRestTimerSeconds = 0
         isRestTimerRunning = false
+        WorkoutOverlayService.updateTimer(0, false)
     }
 
     fun add15Seconds() {
         restTimerSeconds += 15
-        initialRestTimerSeconds += 15 
+        initialRestTimerSeconds += 15
+        WorkoutOverlayService.updateTimer(restTimerSeconds, isRestTimerRunning)
     }
 
     fun sub15Seconds() {
         if (restTimerSeconds > 15) {
             restTimerSeconds -= 15
+            WorkoutOverlayService.updateTimer(restTimerSeconds, isRestTimerRunning)
         } else {
             skipTimer()
         }
