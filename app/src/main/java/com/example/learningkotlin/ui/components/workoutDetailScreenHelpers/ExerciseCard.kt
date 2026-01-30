@@ -16,7 +16,6 @@ import com.example.learningkotlin.model.WorkoutSet
 fun ExerciseCard(
     exercise: Exercise,
     isWorkoutActive: Boolean,
-    parentRefreshTrigger: Int,
     onUpdate: () -> Unit,
     onRemove: () -> Unit,
     onReplace: () -> Unit,
@@ -31,9 +30,7 @@ fun ExerciseCard(
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Forces card to recompose when any data changes
-        val trigger = localRefreshTrigger + parentRefreshTrigger
-        
+
         Column(modifier = Modifier.padding(16.dp)) {
             // Pass the primitives explicitly so Compose detects the change instantly
             key(exercise.restTimer, exercise.notes) {
@@ -70,7 +67,6 @@ fun ExerciseCard(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                val listTrigger = trigger // Read trigger to keep list in sync
                 exercise.sets.forEachIndexed { index, set ->
                     val prevSet = previousSets.getOrNull(index)
                     key(set.id) {

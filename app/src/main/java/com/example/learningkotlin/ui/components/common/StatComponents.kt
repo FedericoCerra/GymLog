@@ -60,26 +60,3 @@ fun StatCard(
         }
     }
 }
-
-@Composable
-fun StatItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = label.uppercase(),
-            fontSize = 10.sp,
-            color = Color.Gray,
-            letterSpacing = 0.5.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = value,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 16.sp,
-            color = Color.White
-        )
-    }
-}

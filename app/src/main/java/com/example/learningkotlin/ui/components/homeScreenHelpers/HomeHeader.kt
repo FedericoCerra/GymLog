@@ -12,13 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeHeader() {
-    val currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMM"))
-
     Row(
         modifier = Modifier
             .fillMaxWidth()

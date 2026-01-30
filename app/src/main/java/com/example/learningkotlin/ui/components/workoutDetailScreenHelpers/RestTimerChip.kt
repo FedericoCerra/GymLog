@@ -2,8 +2,6 @@ package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -17,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -36,7 +33,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
@@ -140,7 +136,7 @@ fun CircularTimePicker(
     var angle by remember(currentTotalSeconds) { 
         val bounded = currentTotalSeconds.coerceIn(0, maxSeconds)
         val initialAngle = (bounded.toFloat() / maxSeconds) * 360f - 90f
-        mutableStateOf(initialAngle) 
+        mutableFloatStateOf(initialAngle) 
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -153,7 +149,7 @@ fun CircularTimePicker(
                     detectDragGestures { change, _ ->
                         val touchX = change.position.x - (size.width / 2)
                         val touchY = change.position.y - (size.height / 2)
-                        var newAngle = Math.toDegrees(atan2(touchY.toDouble(), touchX.toDouble())).toFloat()
+                        val newAngle = Math.toDegrees(atan2(touchY.toDouble(), touchX.toDouble())).toFloat()
                         
                         var normalizedAngle = (newAngle + 90f)
                         if (normalizedAngle < 0) normalizedAngle += 360f

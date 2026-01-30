@@ -15,7 +15,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,7 +62,9 @@ fun WheelPicker(
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    val isSelected = scrollState.firstVisibleItemIndex == index
+                    val isSelected by remember { 
+                        derivedStateOf { scrollState.firstVisibleItemIndex == index } 
+                    }
                     Text(
                         text = items[index],
                         style = MaterialTheme.typography.headlineMedium,
