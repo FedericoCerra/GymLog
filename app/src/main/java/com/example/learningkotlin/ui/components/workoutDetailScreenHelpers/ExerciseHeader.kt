@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ fun ExerciseHeader(
     onReplaceExercise: () -> Unit,
     onTimerChange: (Int) -> Unit,
     onInfoClick: () -> Unit,
-    onNotesChange: (String) -> Unit
+    onNotesChange: (String) -> Unit,
+    onClearSets: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var localNotes by remember(notes) { mutableStateOf(notes) }
@@ -127,6 +129,12 @@ fun ExerciseHeader(
                             leadingIcon = { Icon(Icons.Default.Edit, "Replace") },
                             onClick = { onReplaceExercise(); showMenu = false }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Clear All Sets") },
+                            leadingIcon = { Icon(Icons.Default.PlaylistRemove, "Clear") },
+                            onClick = { onClearSets(); showMenu = false }
+                        )
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("Remove Exercise", color = MaterialTheme.colorScheme.error) },
                             leadingIcon = { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) },
