@@ -1,6 +1,7 @@
 package com.example.learningkotlin.ui.components.homeScreenHelpers
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,11 +25,9 @@ fun WeeklySummaryCard(
     history: List<FinishedWorkout>,
     onClick: () -> Unit
 ) {
-    // Use derivedStateOf to ensure stats update whenever the history list content changes
     val stats by remember(history) {
         derivedStateOf {
             val cal = Calendar.getInstance()
-            // Get start of 7 days ago
             cal.add(Calendar.DAY_OF_YEAR, -6)
             cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0)
             val rangeStart = cal.timeInMillis
@@ -57,11 +56,13 @@ fun WeeklySummaryCard(
 
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -84,12 +85,12 @@ fun WeeklySummaryCard(
                     )
                 }
                 
-                // Consistency "Pill"
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(HevyBlue.copy(alpha = 0.15f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(HevyBlue.copy(alpha = 0.1f))
+                        .border(1.dp, HevyBlue.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "History >",
@@ -100,9 +101,8 @@ fun WeeklySummaryCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Day circles row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -114,7 +114,7 @@ fun WeeklySummaryCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(
                                     when {
@@ -124,7 +124,7 @@ fun WeeklySummaryCard(
                                     }
                                 )
                                 .let { 
-                                    if (!hasWorkout && !isToday) it.background(Color.DarkGray.copy(alpha = 0.2f))
+                                    if (!hasWorkout && !isToday) it.background(Color.DarkGray.copy(alpha = 0.15f))
                                     else it
                                 },
                             contentAlignment = Alignment.Center

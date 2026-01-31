@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -112,28 +113,40 @@ fun SetRow(
                     .clickable { showMenu = true }
             )
             
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                SetType.values().forEach { type ->
+            MaterialTheme(
+                colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
+                shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
+            ) {
+                DropdownMenu(
+                    expanded = showMenu, 
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier
+                        .background(Color(0xFF1C1C1E))
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                ) {
+                    SetType.values().forEach { type ->
+                        DropdownMenuItem(
+                            text = { 
+                                Text(
+                                    text = type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    color = if (localSetType == type) MaterialTheme.colorScheme.primary else Color.White,
+                                    fontWeight = if (localSetType == type) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                localSetType = type
+                                set.type = type
+                                onValueChange()
+                                showMenu = false
+                            }
+                        )
+                    }
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
                     DropdownMenuItem(
-                        text = { 
-                            Text(
-                                text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                                color = if (localSetType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        onClick = {
-                            localSetType = type
-                            set.type = type
-                            onValueChange()
-                            showMenu = false
-                        }
+                        text = { Text("Delete Set", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                        onClick = { onDelete(); showMenu = false }
                     )
                 }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text("Delete Set", color = MaterialTheme.colorScheme.error) },
-                    onClick = { onDelete(); showMenu = false }
-                )
             }
         }
 

@@ -1,6 +1,8 @@
 package com.example.learningkotlin.ui.components.homeScreenHelpers
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,8 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.Workout
-import com.example.learningkotlin.ui.theme.HevyBlue
+import com.example.learningkotlin.ui.components.common.ModernDialog
 
 @Composable
 fun WorkoutListItem(
@@ -25,126 +28,121 @@ fun WorkoutListItem(
     onRename: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-
-    // State for the Rename Dialog
     var showRenameDialog by remember { mutableStateOf(false) }
-    var renameText by remember { mutableStateOf("") }
-
-    val containerColor = Color(0xFF1C1C1E)
+    var renamedName by remember { mutableStateOf(workout.name) }
 
     Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
-        shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (workout.isActive) Modifier.border(2.dp, HevyBlue, RoundedCornerShape(12.dp))
-                else Modifier
-            )
+            .clickable { onClick() }
+            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+        shape = RoundedCornerShape(24.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(20.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = workout.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    if (workout.isActive) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            color = HevyBlue,
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = "ACTIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.Black,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
                 Text(
-                    text = "${workout.exercises.size} Exercises",
+                    text = workout.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val exerciseCount = workout.exercises.size
+                Text(
+                    text = if (exerciseCount == 0) "No exercises" else "$exerciseCount exercises",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
             }
 
-            // MENU BUTTON
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
-                        tint = Color.Gray
-                    )
+                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Gray)
                 }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
+                    shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
                 ) {
-                    // 1. RENAME OPTION
-                    DropdownMenuItem(
-                        text = { Text("Rename") },
-                        leadingIcon = { Icon(Icons.Default.Edit, "Edit") },
-                        onClick = {
-                            renameText = workout.name // Load current name
-                            showRenameDialog = true   // Show popup
-                            showMenu = false
-                        }
-                    )
-
-                    // 2. DELETE OPTION
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) },
-                        onClick = {
-                            onDelete()
-                            showMenu = false
-                        }
-                    )
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier
+                            .background(Color(0xFF1C1C1E))
+                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Rename", color = Color.White, fontWeight = FontWeight.Medium) },
+                            onClick = {
+                                showMenu = false
+                                showRenameDialog = true
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color.White) }
+                        )
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // THE RENAME DIALOG
     if (showRenameDialog) {
-        AlertDialog(
+        ModernDialog(
+            title = "Rename Routine",
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename Routine") },
-            text = {
-                OutlinedTextField(
-                    value = renameText,
-                    onValueChange = { renameText = it },
-                    singleLine = true,
-                    label = { Text("Name") }
-                )
-            },
             confirmButton = {
-                Button(onClick = {
-                    if (renameText.isNotBlank()) {
-                        onRename(renameText) // <--- Send new name up
-                        showRenameDialog = false
-                    }
-                }) { Text("Save") }
+                Button(
+                    onClick = {
+                        if (renamedName.isNotBlank()) {
+                            onRename(renamedName)
+                            showRenameDialog = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Rename", fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showRenameDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel", color = Color.Gray)
+                }
             }
-        )
+        ) {
+            OutlinedTextField(
+                value = renamedName,
+                onValueChange = { renamedName = it },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Black.copy(alpha = 0.3f),
+                    unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                )
+            )
+        }
     }
 }

@@ -1,13 +1,14 @@
 package com.example.learningkotlin.ui.components.historyScreenHelpers
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -53,7 +54,7 @@ fun HistoryItem(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.DarkGray),
+                            .background(Color.DarkGray.copy(alpha = 0.3f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Person, null, tint = Color.Gray)
@@ -65,19 +66,27 @@ fun HistoryItem(
                     }
                 }
                 Box {
-                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = null, tint = Color.Gray)
+                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Gray)
                     }
-                    DropdownMenu(
-                        expanded = showMenu, 
-                        onDismissRequest = { showMenu = false },
-                        modifier = Modifier.background(Color(0xFF1C1C1E))
+                    
+                    MaterialTheme(
+                        colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
+                        shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Delete Workout", color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                            onClick = { onDelete(); showMenu = false }
-                        )
+                        DropdownMenu(
+                            expanded = showMenu, 
+                            onDismissRequest = { showMenu = false },
+                            modifier = Modifier
+                                .background(Color(0xFF1C1C1E))
+                                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Delete Workout", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = { onDelete(); showMenu = false }
+                            )
+                        }
                     }
                 }
             }
@@ -107,8 +116,8 @@ fun HistoryItem(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color.White),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.05f)),
                             contentAlignment = Alignment.Center
                         ) {
                             val imagePath = exercise.imagePath
@@ -117,10 +126,10 @@ fun HistoryItem(
                                 AsyncImage(
                                     model = coilModel, 
                                     contentDescription = null, 
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
                                 )
                             } else {
-                                Icon(Icons.Default.FitnessCenter, null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.FitnessCenter, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
@@ -190,8 +199,6 @@ private fun isPersonalRecord(
 ): Boolean {
     if (currentWeight <= 0) return false
     
-    // Check if there's any previous workout (before current date) 
-    // where the same exercise has a weight >= currentWeight
     val previousMax = allHistory
         .filter { it.date < currentDate }
         .flatMap { it.exercises }
@@ -206,7 +213,7 @@ private fun isPersonalRecord(
 fun HistoryStatItem(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(text = label, color = Color.Gray, fontSize = 12.sp)
-        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
     }
 }
 

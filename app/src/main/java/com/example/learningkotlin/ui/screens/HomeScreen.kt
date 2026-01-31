@@ -24,6 +24,7 @@ import com.example.learningkotlin.viewmodel.HomeViewModel
 import com.example.learningkotlin.ui.components.homeScreenHelpers.HomeHeader
 import com.example.learningkotlin.ui.components.homeScreenHelpers.WeeklySummaryCard
 import com.example.learningkotlin.ui.components.homeScreenHelpers.WorkoutListItem
+import com.example.learningkotlin.ui.components.common.ModernDialog
 
 @Composable
 fun HomeScreen(
@@ -120,18 +121,9 @@ fun HomeScreen(
         }
 
         if (showDialog) {
-            AlertDialog(
+            ModernDialog(
+                title = "New Routine",
                 onDismissRequest = { showDialog = false },
-                title = { Text("New Routine", fontWeight = FontWeight.Bold) },
-                text = {
-                    OutlinedTextField(
-                        value = newWorkoutName,
-                        onValueChange = { newWorkoutName = it },
-                        label = { Text("Routine Name") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                },
                 confirmButton = {
                     Button(
                         onClick = {
@@ -140,17 +132,38 @@ fun HomeScreen(
                                 showDialog = false
                             }
                         },
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Create")
+                        Text("Create", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDialog = false }) {
-                        Text("Cancel")
+                    TextButton(
+                        onClick = { showDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel", color = Color.Gray)
                     }
                 }
-            )
+            ) {
+                OutlinedTextField(
+                    value = newWorkoutName,
+                    onValueChange = { newWorkoutName = it },
+                    placeholder = { Text("Routine Name", color = Color.DarkGray) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Black.copy(alpha = 0.3f),
+                        unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                    )
+                )
+            }
         }
     }
 }
