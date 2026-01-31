@@ -128,8 +128,11 @@ fun ExerciseCard(
                 }
             }
 
+            // Wrap sets rendering in a key that reacts to localRefreshTrigger
+            // and create a stable copy of the list to ensure Compose sees the changes.
+            val currentSets = remember(localRefreshTrigger) { exercise.sets.toList() }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                exercise.sets.forEachIndexed { index, set ->
+                currentSets.forEachIndexed { index, set ->
                     val prevSet = previousSets.getOrNull(index)
                     key(set.id) {
                         SetRow(

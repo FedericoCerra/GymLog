@@ -75,14 +75,14 @@ fun WorkoutDetailScreen(
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
-    // Move logic outside items to stabilize the list structure
-    val workoutExercises = workout.exercises
+    // Force a new list instance on every refresh to ensure LazyColumn detects changes (adds/removes/updates)
+    val workoutExercises = remember(refreshTrigger) { workout.exercises.toList() }
 
-    val totalSets = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.size } }
-    val completedSets = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.count { s -> s.isDone } } }
-    val totalVolume = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
-    val completedVolume = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
-    val totalRestSeconds = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.restTimer * it.sets.size } }
+    val totalSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.size } }
+    val completedSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.count { s -> s.isDone } } }
+    val totalVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
+    val completedVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
+    val totalRestSeconds = remember(workoutExercises) { workoutExercises.sumOf { it.restTimer * it.sets.size } }
     val estTimeSeconds = remember(totalRestSeconds, totalSets) { totalRestSeconds + (totalSets * 120) }
 
     Scaffold(
