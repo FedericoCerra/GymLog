@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.theme.HevyBlue
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,6 +52,7 @@ fun WeeklySummaryCard(
 
     val workoutsCount = stats.first
     val days = stats.second
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Card(
         onClick = onClick,
@@ -88,13 +88,13 @@ fun WeeklySummaryCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(HevyBlue.copy(alpha = 0.1f))
-                        .border(1.dp, HevyBlue.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .background(primaryColor.copy(alpha = 0.1f))
+                        .border(1.dp, primaryColor.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "History >",
-                        color = HevyBlue,
+                        color = primaryColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -118,7 +118,7 @@ fun WeeklySummaryCard(
                                 .clip(CircleShape)
                                 .background(
                                     when {
-                                        hasWorkout -> HevyBlue
+                                        hasWorkout -> primaryColor
                                         isToday -> Color.White.copy(alpha = 0.1f)
                                         else -> Color.Transparent
                                     }
@@ -143,7 +143,7 @@ fun WeeklySummaryCard(
                                 modifier = Modifier
                                     .size(4.dp)
                                     .clip(CircleShape)
-                                    .background(if (hasWorkout) HevyBlue else Color.Gray)
+                                    .background(if (hasWorkout) primaryColor else Color.Gray)
                             )
                         } else {
                             Spacer(modifier = Modifier.size(4.dp))

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -42,7 +43,6 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.learningkotlin.MainActivity
-import com.example.learningkotlin.ui.theme.HevyBlue
 import com.example.learningkotlin.ui.theme.LearningKotlinTheme
 import kotlinx.coroutines.delay
 
@@ -240,6 +240,7 @@ fun OverlayBubble(
     onClick: () -> Unit
 ) {
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     LaunchedEffect(startTime) {
         while (true) {
@@ -279,7 +280,7 @@ fun OverlayBubble(
         Box(
             modifier = Modifier
                 .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(24.dp))
-                .border(2.dp, HevyBlue, RoundedCornerShape(24.dp))
+                .border(2.dp, primaryColor, RoundedCornerShape(24.dp))
                 .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
             Row(
@@ -290,7 +291,7 @@ fun OverlayBubble(
                     Icon(
                         Icons.Default.Timer,
                         contentDescription = null,
-                        tint = HevyBlue,
+                        tint = primaryColor,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
@@ -309,7 +310,7 @@ fun OverlayBubble(
                 Icon(
                     Icons.Default.FitnessCenter,
                     contentDescription = null,
-                    tint = HevyBlue,
+                    tint = primaryColor,
                     modifier = Modifier.size(18.dp)
                 )
                 Text(

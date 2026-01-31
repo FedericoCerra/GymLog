@@ -33,7 +33,6 @@ import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.TimeWheelPicker
-import com.example.learningkotlin.ui.theme.HevyBlue
 import com.example.learningkotlin.ui.theme.HevyGreen
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,6 +47,7 @@ fun WorkoutRecapScreen(
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     // Calculate Muscle Distribution
     val muscleDistribution = remember(finishedWorkout, refreshTrigger) {
@@ -109,7 +109,7 @@ fun WorkoutRecapScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Workout Complete!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                    Text(text = finishedWorkout.name, style = MaterialTheme.typography.titleLarge, color = HevyBlue, fontWeight = FontWeight.Bold)
+                    Text(text = finishedWorkout.name, style = MaterialTheme.typography.titleLarge, color = primaryColor, fontWeight = FontWeight.Bold)
 
                     // DATE WITH EDIT ICON - Forced English Locale
                     val dateStr = SimpleDateFormat("EEEE, MMM d 'at' HH:mm", Locale.US).format(Date(finishedWorkout.date))
@@ -125,7 +125,7 @@ fun WorkoutRecapScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = dateStr, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Icon(Icons.Default.Edit, null, tint = HevyBlue, modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Edit, null, tint = primaryColor, modifier = Modifier.size(12.dp))
                     }
                     Spacer(modifier = Modifier.height(32.dp))
                 }
@@ -148,19 +148,22 @@ fun WorkoutRecapScreen(
                                 value = formatDuration(finishedWorkout.durationSeconds),
                                 isEditable = true,
                                 onClick = { showTimePicker = true },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                primaryColor = primaryColor
                             )
                             VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
                             StatItem(
                                 label = "Volume",
                                 value = "${finishedWorkout.totalVolume.toInt()} kg",
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                primaryColor = primaryColor
                             )
                             VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
                             StatItem(
                                 label = "Sets",
                                 value = finishedWorkout.totalSets.toString(),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                primaryColor = primaryColor
                             )
                         }
                     }
@@ -169,7 +172,7 @@ fun WorkoutRecapScreen(
                 // 3. Muscle Distribution Graph
                 if (muscleDistribution.isNotEmpty()) {
                     item {
-                        MuscleDistributionSection(muscleDistribution)
+                        MuscleDistributionSection(muscleDistribution, primaryColor)
                     }
                 }
 
@@ -179,6 +182,7 @@ fun WorkoutRecapScreen(
                 items(finishedWorkout.exercises) { exercise ->
                     RecapExerciseItem(
                         exercise = exercise,
+                        primaryColor = primaryColor,
                         onUpdate = { 
                             onSave?.invoke(finishedWorkout)
                         }
@@ -191,7 +195,7 @@ fun WorkoutRecapScreen(
                     Button(
                         onClick = onClose,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = HevyBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Close Recap", fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -260,7 +264,7 @@ fun WorkoutRecapScreen(
 }
 
 @Composable
-fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>) {
+fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>, primaryColor: Color) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
         Text(
             text = "MUSCLE DISTRIBUTION",
@@ -291,7 +295,7 @@ fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>) {
                         modifier = Modifier
                             .fillMaxWidth(percentage)
                             .fillMaxHeight()
-                            .background(HevyBlue)
+                            .background(primaryColor)
                     )
                 }
             }
@@ -305,7 +309,8 @@ fun StatItem(
     label: String,
     value: String,
     isEditable: Boolean = false,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    primaryColor: Color
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -321,7 +326,7 @@ fun StatItem(
             )
             if (isEditable) {
                 Spacer(modifier = Modifier.width(4.dp))
-                Icon(Icons.Default.Edit, null, tint = HevyBlue, modifier = Modifier.size(10.dp))
+                Icon(Icons.Default.Edit, null, tint = primaryColor, modifier = Modifier.size(10.dp))
             }
         }
         Text(
@@ -337,6 +342,7 @@ fun StatItem(
 @Composable
 fun RecapExerciseItem(
     exercise: Exercise,
+    primaryColor: Color,
     onUpdate: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -369,7 +375,7 @@ fun RecapExerciseItem(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = exercise.name, color = HevyBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(text = exercise.name, color = primaryColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 
                 BasicTextField(
                     value = localNotes,
@@ -385,7 +391,7 @@ fun RecapExerciseItem(
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    cursorBrush = SolidColor(HevyBlue),
+                    cursorBrush = SolidColor(primaryColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         if (localNotes.isEmpty()) {

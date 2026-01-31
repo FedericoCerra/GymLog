@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.navigation.NavGraph
 import com.example.learningkotlin.ui.theme.LearningKotlinTheme
 
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        ThemePreferences.load(this)
         checkAndRequestPermissions()
         
         intent?.getIntExtra("navigate_to_workout", -1)?.takeIf { it != -1 }?.let {

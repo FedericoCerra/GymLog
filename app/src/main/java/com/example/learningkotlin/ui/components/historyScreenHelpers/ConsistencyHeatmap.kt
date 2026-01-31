@@ -17,7 +17,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.theme.HevyBlue
 import java.util.*
 
 @Composable
@@ -34,6 +33,7 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
 
     val weeksToShow = 5
     val daysOfWeek = listOf("M", "T", "W", "T", "F", "S", "S")
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     val gridData = remember(history) {
         val today = Calendar.getInstance().apply {
@@ -118,7 +118,7 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
                             .height(26.dp)
                             .padding(horizontal = 3.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (hasWorkout) HevyBlue else Color(0xFF2C2C2E))
+                            .background(if (hasWorkout) primaryColor else Color(0xFF2C2C2E))
                             .let { 
                                 if (isToday) it.border(1.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
                                 else it

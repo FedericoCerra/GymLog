@@ -3,10 +3,14 @@ package com.example.learningkotlin.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,6 +29,7 @@ import com.example.learningkotlin.viewmodel.AuthViewModel
 fun ProfileScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit,
+    onAppSettings: () -> Unit,
     onLogout: () -> Unit
 ) {
     val user = authViewModel.currentUser
@@ -33,7 +38,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text("Settings", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -52,53 +57,89 @@ fun ProfileScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Image / Initials
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = userEmail.take(1).uppercase(),
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = userEmail,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Settings List
-            Card(
+            // Profile Section with improved graphics
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
-                shape = RoundedCornerShape(16.dp)
+                color = Color(0xFF1C1C1E),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                Column {
-                    ProfileMenuItem(icon = Icons.Default.Settings, label = "Account Settings")
-                    HorizontalDivider(color = Color.DarkGray, modifier = Modifier.padding(horizontal = 16.dp))
-                    ProfileMenuItem(icon = Icons.Default.Notifications, label = "Notifications")
-                    HorizontalDivider(color = Color.DarkGray, modifier = Modifier.padding(horizontal = 16.dp))
-                    ProfileMenuItem(icon = Icons.Default.Help, label = "Help & Support")
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = userEmail.take(1).uppercase(),
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Account",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = userEmail,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Settings Groups
+            SettingsGroup(title = "PREFERENCES") {
+                ProfileMenuItem(
+                    icon = Icons.Default.Palette, 
+                    label = "App Settings", 
+                    subtitle = "Theme color & UI",
+                    onClick = onAppSettings
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(start = 56.dp))
+                ProfileMenuItem(
+                    icon = Icons.Default.Notifications, 
+                    label = "Notifications",
+                    subtitle = "Alerts & Reminders"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            SettingsGroup(title = "SUPPORT") {
+                ProfileMenuItem(
+                    icon = Icons.AutoMirrored.Filled.Help, 
+                    label = "Help & Support"
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(start = 56.dp))
+                ProfileMenuItem(
+                    icon = Icons.Default.Info, 
+                    label = "About Hevy"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Logout Button with better styling
             Button(
                 onClick = {
                     authViewModel.signOut()
@@ -107,32 +148,73 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.05f),
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                shape = RoundedCornerShape(16.dp),
+                elevation = null
             ) {
-                Icon(Icons.Default.Logout, null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Logout", fontWeight = FontWeight.Bold)
+                Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Logout", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-fun ProfileMenuItem(icon: ImageVector, label: String) {
+fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.Gray,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+        )
+        Surface(
+            color = Color(0xFF1C1C1E),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+fun ProfileMenuItem(
+    icon: ImageVector, 
+    label: String, 
+    subtitle: String? = null,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Handle click */ }
+            .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.05f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+        }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(label, color = Color.White, fontSize = 16.sp)
-        Spacer(modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = Color.DarkGray)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            if (subtitle != null) {
+                Text(subtitle, color = Color.Gray, fontSize = 12.sp)
+            }
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp))
     }
 }

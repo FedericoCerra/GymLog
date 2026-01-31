@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.theme.HevyBlue
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -155,10 +154,11 @@ fun WeeklyGraph(
     }
     
     val maxValue = stats.maxOf { it.second }.coerceAtLeast(1.0)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = HevyBlue, modifier = Modifier.size(16.dp))
+            Icon(icon, null, tint = primaryColor, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
         }
@@ -180,7 +180,7 @@ fun WeeklyGraph(
                                 .width(16.dp)
                                 .fillMaxHeight(barHeight.coerceIn(0.05f, 1f))
                                 .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(if (value > 0) HevyBlue else Color.DarkGray.copy(alpha = 0.2f))
+                                .background(if (value > 0) primaryColor else Color.DarkGray.copy(alpha = 0.2f))
                         )
                     }
                     Box(modifier = Modifier.height(16.dp), contentAlignment = Alignment.Center) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,7 +22,6 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.theme.HevyBlue
 import java.util.*
 import kotlin.math.PI
 import kotlin.math.cos
@@ -45,6 +45,7 @@ fun MuscleDistributionContent(history: List<FinishedWorkout>) {
     val distribution = remember(filteredHistory) { calculateMuscleDistribution(filteredHistory) }
     val labels = distribution.keys.toList()
     val values = distribution.values.map { it.toFloat() }
+    val primaryColor = MaterialTheme.colorScheme.primary
     
     Column {
         Row(
@@ -53,7 +54,7 @@ fun MuscleDistributionContent(history: List<FinishedWorkout>) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.PieChart, null, tint = HevyBlue, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.PieChart, null, tint = primaryColor, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("MUSCLE DISTRIBUTION", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
             }
@@ -70,6 +71,7 @@ fun MuscleDistributionContent(history: List<FinishedWorkout>) {
             SpiderGraph(
                 labels = labels,
                 values = values,
+                primaryColor = primaryColor,
                 modifier = Modifier.fillMaxWidth().height(180.dp).padding(horizontal = 24.dp)
             )
         }
@@ -80,6 +82,7 @@ fun MuscleDistributionContent(history: List<FinishedWorkout>) {
 fun SpiderGraph(
     labels: List<String>,
     values: List<Float>,
+    primaryColor: Color,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -136,7 +139,7 @@ fun SpiderGraph(
             dataPath.close()
             
             val brush = Brush.radialGradient(
-                colors = listOf(HevyBlue.copy(alpha = 0.4f), HevyBlue.copy(alpha = 0.1f)),
+                colors = listOf(primaryColor.copy(alpha = 0.4f), primaryColor.copy(alpha = 0.1f)),
                 center = center,
                 radius = radius
             )
@@ -144,7 +147,7 @@ fun SpiderGraph(
             
             drawPath(
                 path = dataPath,
-                color = HevyBlue,
+                color = primaryColor,
                 style = Stroke(
                     width = 2.5.dp.toPx(),
                     pathEffect = PathEffect.cornerPathEffect(8.dp.toPx())
@@ -154,7 +157,7 @@ fun SpiderGraph(
             dataPoints.forEachIndexed { i, point ->
                 if (values[i] > 0) {
                     drawCircle(Color.Black, radius = 4.dp.toPx(), center = point)
-                    drawCircle(HevyBlue, radius = 2.5.dp.toPx(), center = point)
+                    drawCircle(primaryColor, radius = 2.5.dp.toPx(), center = point)
                 }
             }
         }

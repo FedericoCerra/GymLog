@@ -65,31 +65,33 @@ fun NavGraph(
         }
     }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    
-    DisposableEffect(lifecycleOwner, currentRoute, navBackStackEntry?.arguments) {
-        val observer = LifecycleEventObserver { _, event ->
-            val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
-            val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
-            val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
-                                       workoutIdInRoute == activeWorkoutId
+    // Handle Overlay Bubble Visibility based on navigation AND active workout status
+    val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
+    LaunchedEffect(currentRoute, navBackStackEntry?.arguments, activeWorkoutId) {
+        val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
+        val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
+                                   workoutIdInRoute == activeWorkoutId
+        
+        WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
+    }
 
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> {
-                    WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
-                }
-                Lifecycle.Event.ON_PAUSE -> {
-                    WorkoutOverlayService.setVisibility(true)
-                }
-                else -> {}
+    // Handle Overlay Bubble Visibility based on app lifecycle (pause/resume)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, currentRoute, navBackStackEntry?.arguments, activeWorkoutId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                // Always show bubble when app is in background
+                WorkoutOverlayService.setVisibility(true)
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                // Re-evaluate based on current screen when returning to app
+                val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
+                val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
+                                           workoutIdInRoute == activeWorkoutId
+                WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
             }
         }
-
         lifecycleOwner.lifecycle.addObserver(observer)
-        
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val isRoutinesSelected = currentDestination?.hierarchy?.any { 
@@ -150,11 +152,18 @@ fun NavGraph(
                         ProfileScreen(
                             authViewModel = authViewModel,
                             onBack = { navController.popBackStack() },
+                            onAppSettings = { navController.navigate("app_settings") },
                             onLogout = {
                                 navController.navigate("auth") {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
+                        )
+                    }
+
+                    composable("app_settings") {
+                        AppSettingsScreen(
+                            onBack = { navController.popBackStack() }
                         )
                     }
 
