@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.learningkotlin" />
+                  <option name="mobileSdkAppId" value="1:466375024652:android:488f6ca3e2f3cae6088e29" />
+                  <option name="projectId" value="gymlog-4138a" />
+                  <option name="projectNumber" value="466375024652" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

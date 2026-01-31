@@ -30,11 +30,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.screens.HomeScreen
-import com.example.learningkotlin.ui.screens.WorkoutDetailScreen
-import com.example.learningkotlin.ui.screens.WorkoutHistoryScreen
-import com.example.learningkotlin.ui.screens.WorkoutRecapScreen
+import com.example.learningkotlin.ui.screens.*
 import com.example.learningkotlin.viewmodel.HomeViewModel
+import com.example.learningkotlin.viewmodel.AuthViewModel
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.BottomTimerBar
 import com.example.learningkotlin.service.WorkoutOverlayService
 
@@ -45,12 +43,16 @@ fun NavGraph(
     onStartWorkoutHandled: () -> Unit = {}
 ) {
     val homeViewModel: HomeViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
     var selectedHistoryWorkout by remember { mutableStateOf<FinishedWorkout?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
     
+    // Auth-aware start destination
+    val startDestination = if (authViewModel.currentUser == null) "auth" else "home"
+
     // Handle navigation from overlay bubble
     LaunchedEffect(startWorkoutId) {
         startWorkoutId?.let { id ->
@@ -65,7 +67,6 @@ fun NavGraph(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     
-    // Toggle overlay visibility based on current screen AND app lifecycle
     DisposableEffect(lifecycleOwner, currentRoute, navBackStackEntry?.arguments) {
         val observer = LifecycleEventObserver { _, event ->
             val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
@@ -75,11 +76,9 @@ fun NavGraph(
 
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
-                    // Show bubble ONLY if NOT on the active workout screen
                     WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
                 }
                 Lifecycle.Event.ON_PAUSE -> {
-                    // Always show bubble when app goes to background (home screen of phone)
                     WorkoutOverlayService.setVisibility(true)
                 }
                 else -> {}
@@ -88,13 +87,6 @@ fun NavGraph(
 
         lifecycleOwner.lifecycle.addObserver(observer)
         
-        // Initial check
-        val activeWorkoutId = WorkoutOverlayService.activeWorkoutId.intValue
-        val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
-        val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
-                                   workoutIdInRoute == activeWorkoutId
-        WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -124,7 +116,18 @@ fun NavGraph(
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding()) 
             ) {
-                NavHost(navController = navController, startDestination = "home") {
+                NavHost(navController = navController, startDestination = startDestination) {
+                    composable("auth") {
+                        AuthScreen(
+                            viewModel = authViewModel,
+                            onAuthSuccess = {
+                                navController.navigate("home") {
+                                    popUpTo("auth") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     composable("home") {
                         HomeScreen(
                             viewModel = homeViewModel,
