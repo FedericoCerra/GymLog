@@ -30,6 +30,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onWorkoutClick: (Workout) -> Unit,
     onSummaryClick: () -> Unit,
+    onProfileClick: () -> Unit,
     bottomBarPadding: Dp = 0.dp
 ) {
     val workouts = viewModel.workouts
@@ -47,7 +48,9 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { HomeHeader() }
+            item { 
+                HomeHeader(onProfileClick = onProfileClick) 
+            }
             item { 
                 WeeklySummaryCard(
                     history = viewModel.history,

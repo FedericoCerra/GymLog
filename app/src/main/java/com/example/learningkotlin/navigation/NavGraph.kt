@@ -139,7 +139,22 @@ fun NavGraph(
                                     restoreState = true
                                 }
                             },
+                            onProfileClick = {
+                                navController.navigate("profile")
+                            },
                             bottomBarPadding = totalBottomOffset
+                        )
+                    }
+
+                    composable("profile") {
+                        ProfileScreen(
+                            authViewModel = authViewModel,
+                            onBack = { navController.popBackStack() },
+                            onLogout = {
+                                navController.navigate("auth") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         )
                     }
 
