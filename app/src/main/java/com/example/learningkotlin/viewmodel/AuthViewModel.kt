@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 
 class AuthViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
@@ -48,15 +48,29 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    fun signUp(email: String, pass: String, onResult: (Boolean) -> Unit) {
+    fun signUp(email: String, username: String, pass: String, onResult: (Boolean) -> Unit) {
         isLoading = true
         authError = null
         auth.createUserWithEmailAndPassword(email, pass)
             .addOnCompleteListener { task ->
-                isLoading = false
                 if (task.isSuccessful) {
-                    onResult(true)
+                    val user = auth.currentUser
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(username)
+                        .build()
+
+                    user?.updateProfile(profileUpdates)
+                        ?.addOnCompleteListener { profileTask ->
+                            isLoading = false
+                            if (profileTask.isSuccessful) {
+                                onResult(true)
+                            } else {
+                                authError = profileTask.exception?.localizedMessage ?: "Profile update failed"
+                                onResult(false)
+                            }
+                        }
                 } else {
+                    isLoading = false
                     authError = task.exception?.localizedMessage ?: "Sign up failed"
                     onResult(false)
                 }

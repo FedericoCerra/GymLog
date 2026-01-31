@@ -46,10 +46,10 @@ fun SetRow(
     personalBests: ExercisePersonalBests = ExercisePersonalBests()
 ) {
     // 1. Initialize State
-    var weightText by remember(set.weight) {
+    var weightText by remember {
         mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString().removeSuffix(".0"))
     }
-    var repsText by remember(set.reps) {
+    var repsText by remember {
         mutableStateOf(if (set.reps == 0) "" else set.reps.toString())
     }
 
@@ -242,13 +242,9 @@ private fun TableInput(
 ) {
     val focusManager = LocalFocusManager.current
     
-    // Detect if keyboard is hidden to clear focus
-    val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    LaunchedEffect(isKeyboardVisible) {
-        if (!isKeyboardVisible) {
-            focusManager.clearFocus()
-        }
-    }
+    // Remove the KeyboardVisibility listener that was clearing focus
+    // The previous implementation was clearing focus whenever the keyboard Bottom inset changed,
+    // which happens on every character stroke in some Android versions.
 
     Box(
         modifier = modifier

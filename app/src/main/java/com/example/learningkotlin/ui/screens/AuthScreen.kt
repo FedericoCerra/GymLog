@@ -1,10 +1,10 @@
 package com.example.learningkotlin.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,6 +31,7 @@ import com.example.learningkotlin.viewmodel.AuthViewModel
 fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
     var isLogin by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -38,7 +39,7 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
     val surfaceColor = Color(0xFF1C1C1E)
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // 1. BACKGROUND DECORATION (Subtle Glowing Gradients)
+        // 1. BACKGROUND DECORATION
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -64,7 +65,7 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 2. LOGO / BRANDING
+            // 2. LOGO
             Surface(
                 modifier = Modifier.size(80.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -73,7 +74,7 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Fireplace,
+                        imageVector = Icons.Default.Fireplace,
                         contentDescription = null,
                         tint = primaryColor,
                         modifier = Modifier.size(40.dp)
@@ -108,6 +109,32 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
+                    AnimatedVisibility(
+                        visible = !isLogin,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column {
+                            OutlinedTextField(
+                                value = username,
+                                onValueChange = { username = it },
+                                label = { Text("Username") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Black.copy(alpha = 0.3f),
+                                    focusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                                ),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
@@ -173,10 +200,11 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
                 onClick = {
                     val trimmedEmail = email.trim()
                     val trimmedPassword = password.trim()
+                    val trimmedUsername = username.trim()
                     if (isLogin) {
                         viewModel.signIn(trimmedEmail, trimmedPassword) { if (it) onAuthSuccess() }
                     } else {
-                        viewModel.signUp(trimmedEmail, trimmedPassword) { if (it) onAuthSuccess() }
+                        viewModel.signUp(trimmedEmail, trimmedUsername, trimmedPassword) { if (it) onAuthSuccess() }
                     }
                 },
                 modifier = Modifier
@@ -187,7 +215,7 @@ fun AuthScreen(viewModel: AuthViewModel, onAuthSuccess: () -> Unit) {
                     containerColor = primaryColor,
                     disabledContainerColor = primaryColor.copy(alpha = 0.3f)
                 ),
-                enabled = !viewModel.isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !viewModel.isLoading && email.isNotBlank() && password.isNotBlank() && (isLogin || username.isNotBlank())
             ) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)

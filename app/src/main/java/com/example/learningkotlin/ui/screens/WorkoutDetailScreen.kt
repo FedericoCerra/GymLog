@@ -75,11 +75,14 @@ fun WorkoutDetailScreen(
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
-    val totalSets = remember(workout.exercises, refreshTrigger) { workout.exercises.sumOf { it.sets.size } }
-    val completedSets = remember(workout.exercises, refreshTrigger) { workout.exercises.sumOf { it.sets.count { s -> s.isDone } } }
-    val totalVolume = remember(workout.exercises, refreshTrigger) { workout.exercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
-    val completedVolume = remember(workout.exercises, refreshTrigger) { workout.exercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
-    val totalRestSeconds = remember(workout.exercises, refreshTrigger) { workout.exercises.sumOf { it.restTimer * it.sets.size } }
+    // Move logic outside items to stabilize the list structure
+    val workoutExercises = workout.exercises
+
+    val totalSets = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.size } }
+    val completedSets = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.count { s -> s.isDone } } }
+    val totalVolume = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
+    val completedVolume = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
+    val totalRestSeconds = remember(workoutExercises, refreshTrigger) { workoutExercises.sumOf { it.restTimer * it.sets.size } }
     val estTimeSeconds = remember(totalRestSeconds, totalSets) { totalRestSeconds + (totalSets * 120) }
 
     Scaffold(
@@ -132,7 +135,7 @@ fun WorkoutDetailScreen(
                     )
                 }
 
-                items(workout.exercises, key = { it.id }) { exercise ->
+                items(workoutExercises, key = { it.id }) { exercise ->
                     val previousSets = remember(exercise.name, viewModel.history) {
                         viewModel.getPreviousSetsForExercise(exercise.name)
                     }
@@ -140,29 +143,26 @@ fun WorkoutDetailScreen(
                         viewModel.getPersonalBests(exercise.name)
                     }
                     
-                    // We use key(refreshTrigger) to force recomposition of ExerciseCard when sets change
-                    key(refreshTrigger) {
-                        ExerciseCard(
-                            exercise = exercise,
-                            isWorkoutActive = workout.isActive,
-                            onUpdate = { refreshTrigger++ },
-                            onRemove = { 
-                                workout.exercises.remove(exercise)
-                                refreshTrigger++ 
-                            },
-                            onReplace = {
-                                exerciseToReplace = exercise
-                                showSelectExerciseDialog = true
-                            },
-                            onStartTimer = { duration -> viewModel.startRestTimer(duration) },
-                            onInfoClick = {
-                                val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
-                                if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
-                            },
-                            previousSets = previousSets,
-                            personalBests = personalBests
-                        )
-                    }
+                    ExerciseCard(
+                        exercise = exercise,
+                        isWorkoutActive = workout.isActive,
+                        onUpdate = { refreshTrigger++ },
+                        onRemove = { 
+                            workout.exercises.remove(exercise)
+                            refreshTrigger++ 
+                        },
+                        onReplace = {
+                            exerciseToReplace = exercise
+                            showSelectExerciseDialog = true
+                        },
+                        onStartTimer = { duration -> viewModel.startRestTimer(duration) },
+                        onInfoClick = {
+                            val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
+                            if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
+                        },
+                        previousSets = previousSets,
+                        personalBests = personalBests
+                    )
                 }
 
                 item {

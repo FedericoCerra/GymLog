@@ -2,12 +2,16 @@ package com.example.learningkotlin.data
 
 import android.content.Context
 import com.example.learningkotlin.model.FinishedWorkout
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
 object HistoryManager {
-    private const val FILE_NAME = "workout_history.json"
+    private fun getFileName(): String {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "default"
+        return "workout_history_$userId.json"
+    }
     
     private val json = Json { 
         ignoreUnknownKeys = true 
@@ -39,7 +43,7 @@ object HistoryManager {
     private fun saveHistory(context: Context, history: List<FinishedWorkout>) {
         try {
             val jsonString = json.encodeToString(history)
-            val file = File(context.filesDir, FILE_NAME)
+            val file = File(context.filesDir, getFileName())
             file.writeText(jsonString)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -47,7 +51,7 @@ object HistoryManager {
     }
 
     fun loadHistory(context: Context): List<FinishedWorkout> {
-        val file = File(context.filesDir, FILE_NAME)
+        val file = File(context.filesDir, getFileName())
         if (!file.exists()) return emptyList()
 
         return try {
