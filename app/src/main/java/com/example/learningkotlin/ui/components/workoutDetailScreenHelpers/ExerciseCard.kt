@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.model.WorkoutSet
@@ -41,6 +42,7 @@ fun ExerciseCard(
 ) {
     var localRefreshTrigger by remember { mutableIntStateOf(0) }
     var showWarmupConfig by remember { mutableStateOf(false) }
+    val weightUnit = ThemePreferences.weightUnit.value.uppercase()
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -113,7 +115,7 @@ fun ExerciseCard(
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                 HeaderLabel("SET", Modifier.weight(1f))
                 HeaderLabel("PREVIOUS", Modifier.weight(2f))
-                HeaderLabel("KG/LBS", Modifier.weight(1.5f))
+                HeaderLabel(weightUnit, Modifier.weight(1.5f))
                 HeaderLabel("REPS", Modifier.weight(1.5f))
                 if (isWorkoutActive) {
                     Spacer(modifier = Modifier.weight(1f)) 

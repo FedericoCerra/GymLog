@@ -12,10 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MonitorWeight
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +35,8 @@ fun AppSettingsScreen(onBack: () -> Unit) {
     val currentWeightUnit = ThemePreferences.weightUnit.value
     val isAutoRestTimerEnabled = ThemePreferences.autoRestTimer.value
     val isTimerSoundEnabled = ThemePreferences.timerSound.value
+    val showOverlayBubble = ThemePreferences.showOverlayBubble.value
+    val showWorkoutNotification = ThemePreferences.showWorkoutNotification.value
 
     val availableColors = listOf(
         Color(0xFF2196F3), // Hevy Blue
@@ -144,6 +143,27 @@ fun AppSettingsScreen(onBack: () -> Unit) {
                         description = "Play alert when rest ends",
                         checked = isTimerSoundEnabled,
                         onCheckedChange = { ThemePreferences.saveTimerSound(context, it) }
+                    )
+                }
+            }
+
+            // 4. NOTIFICATIONS & OVERLAY
+            item {
+                GlassSettingContainer(title = "NOTIFICATIONS", subtitle = "Visibility and alerts") {
+                    SwitchSettingItem(
+                        icon = Icons.Default.BubbleChart,
+                        label = "Overlay Bubble",
+                        description = "Show floating timer when outside app",
+                        checked = showOverlayBubble,
+                        onCheckedChange = { ThemePreferences.saveShowOverlayBubble(context, it) }
+                    )
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
+                    SwitchSettingItem(
+                        icon = Icons.Default.NotificationImportant,
+                        label = "Workout Notification",
+                        description = "Show active workout in tray",
+                        checked = showWorkoutNotification,
+                        onCheckedChange = { ThemePreferences.saveShowWorkoutNotification(context, it) }
                     )
                 }
             }

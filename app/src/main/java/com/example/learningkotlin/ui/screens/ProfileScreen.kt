@@ -122,12 +122,6 @@ fun ProfileScreen(
                     subtitle = "Theme, units & UI",
                     onClick = onAppSettings
                 )
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 16.dp))
-                ProfileMenuItem(
-                    icon = Icons.Default.Notifications, 
-                    label = "Notifications",
-                    subtitle = "Alerts & Reminders"
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -43,6 +43,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.learningkotlin.MainActivity
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.ui.theme.LearningKotlinTheme
 import kotlinx.coroutines.delay
 
@@ -158,8 +159,9 @@ class WorkoutOverlayService : Service() {
                 
                 setContent {
                     LearningKotlinTheme(dynamicColor = false) {
+                        val showBubble = ThemePreferences.showOverlayBubble.value
                         AnimatedVisibility(
-                            visible = isVisible.value,
+                            visible = isVisible.value && showBubble,
                             enter = fadeIn() + scaleIn(),
                             exit = fadeOut() + scaleOut()
                         ) {
@@ -199,13 +201,16 @@ class WorkoutOverlayService : Service() {
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
+        val showNotification = ThemePreferences.showWorkoutNotification.value
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Active Workout")
             .setContentText("Workout: $workoutName is in progress")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
-            .setOngoing(false) // Changed to false to make it dismissible
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(showNotification) // Respect preference: ongoing if user wants it persistent
+            .setPriority(if (showNotification) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_MIN)
+            .setSilent(!showNotification)
             .build()
     }
 

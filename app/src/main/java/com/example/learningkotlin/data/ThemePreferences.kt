@@ -12,11 +12,15 @@ object ThemePreferences {
     private const val KEY_WEIGHT_UNIT = "weight_unit"
     private const val KEY_AUTO_REST_TIMER = "auto_rest_timer"
     private const val KEY_TIMER_SOUND = "timer_sound"
+    private const val KEY_SHOW_OVERLAY_BUBBLE = "show_overlay_bubble"
+    private const val KEY_SHOW_WORKOUT_NOTIFICATION = "show_workout_notification"
 
     val primaryColor = mutableStateOf(Color(0xFF2196F3))
     val weightUnit = mutableStateOf("kg")
     val autoRestTimer = mutableStateOf(true)
     val timerSound = mutableStateOf(true)
+    val showOverlayBubble = mutableStateOf(true)
+    val showWorkoutNotification = mutableStateOf(true)
 
     fun load(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -27,6 +31,8 @@ object ThemePreferences {
         weightUnit.value = prefs.getString(KEY_WEIGHT_UNIT, "kg") ?: "kg"
         autoRestTimer.value = prefs.getBoolean(KEY_AUTO_REST_TIMER, true)
         timerSound.value = prefs.getBoolean(KEY_TIMER_SOUND, true)
+        showOverlayBubble.value = prefs.getBoolean(KEY_SHOW_OVERLAY_BUBBLE, true)
+        showWorkoutNotification.value = prefs.getBoolean(KEY_SHOW_WORKOUT_NOTIFICATION, true)
     }
 
     fun saveColor(context: Context, color: Color) {
@@ -51,6 +57,18 @@ object ThemePreferences {
         timerSound.value = enabled
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_TIMER_SOUND, enabled) }
+    }
+
+    fun saveShowOverlayBubble(context: Context, enabled: Boolean) {
+        showOverlayBubble.value = enabled
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putBoolean(KEY_SHOW_OVERLAY_BUBBLE, enabled) }
+    }
+
+    fun saveShowWorkoutNotification(context: Context, enabled: Boolean) {
+        showWorkoutNotification.value = enabled
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putBoolean(KEY_SHOW_WORKOUT_NOTIFICATION, enabled) }
     }
 
     fun formatWeight(kg: Double): String {
