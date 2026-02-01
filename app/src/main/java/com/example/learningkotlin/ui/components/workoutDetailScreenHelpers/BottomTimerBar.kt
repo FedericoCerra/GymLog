@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
@@ -48,7 +47,8 @@ fun BottomTimerBar(
 
     val coroutineScope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
-    val threshold = -200f
+    // Increased threshold for deletion (must swipe further left)
+    val threshold = -280f
 
     val isPastThreshold = offsetX.value < threshold
 
@@ -65,10 +65,10 @@ fun BottomTimerBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .height(72.dp), // Sleeker height
+            .height(72.dp),
         contentAlignment = Alignment.CenterEnd
     ) {
-        // 1. MINIMALIST BACKGROUND HINT (An "X" icon revealed on swipe)
+        // 1. MINIMALIST BACKGROUND HINT
         Icon(
             imageVector = Icons.Default.Close,
             contentDescription = null,
@@ -76,12 +76,12 @@ fun BottomTimerBar(
             modifier = Modifier
                 .padding(end = 24.dp)
                 .size(28.dp)
-                .alpha((abs(offsetX.value) / 100f).coerceIn(0f, 1f))
+                .alpha((abs(offsetX.value) / 150f).coerceIn(0f, 1f))
                 .scale(hintScale)
         )
 
-        // 2. THE SWIPEABLE CARD
-        Card(
+        // 2. THE GLASS SWIPEABLE CARD
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
@@ -106,17 +106,18 @@ fun BottomTimerBar(
                         }
                     )
                 }
-                .shadow(12.dp, RoundedCornerShape(36.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(36.dp)),
+                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(36.dp)),
             shape = RoundedCornerShape(36.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF18181A))
+            // Background less transparent
+            color = Color(0xFF121212).copy(alpha = 0.85f),
+            shadowElevation = 0.dp
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp) // Reduced internal padding
+                    .padding(horizontal = 12.dp)
             ) {
-                // LEFT ACTION
+                // LEFT ACTION - More transparent Glass Pill
                 TimerActionPill(
                     text = "-15s",
                     modifier = Modifier.align(Alignment.CenterStart),
@@ -126,14 +127,14 @@ fun BottomTimerBar(
                 // ABSOLUTE CENTER TIMER
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(54.dp)
                         .align(Alignment.Center),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
                         progress = { 1f },
                         modifier = Modifier.fillMaxSize(),
-                        color = Color.White.copy(alpha = 0.05f),
+                        color = Color.White.copy(alpha = 0.08f),
                         strokeWidth = 3.dp
                     )
                     CircularProgressIndicator(
@@ -146,13 +147,13 @@ fun BottomTimerBar(
                     Text(
                         text = timeText,
                         color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
 
-                // RIGHT ACTION
+                // RIGHT ACTION - More transparent Glass Pill
                 TimerActionPill(
                     text = "+15s",
                     modifier = Modifier.align(Alignment.CenterEnd),
@@ -171,21 +172,22 @@ fun TimerActionPill(
 ) {
     Box(
         modifier = modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.06f))
+            .height(38.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.04f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(color = Color.White),
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
             color = Color.White,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.ExtraBold,
             fontSize = 13.sp
         )
     }

@@ -72,7 +72,10 @@ fun NavGraph(
         val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
                                    workoutIdInRoute == activeWorkoutId
         
-        WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
+        // Hide bubble if viewing active workout OR in settings screens
+        val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings"
+        
+        WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
     }
 
     // Handle Overlay Bubble Visibility based on app lifecycle (pause/resume)
@@ -87,7 +90,9 @@ fun NavGraph(
                 val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
                 val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
                                            workoutIdInRoute == activeWorkoutId
-                WorkoutOverlayService.setVisibility(!isViewingActiveWorkout)
+                val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings"
+                
+                WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

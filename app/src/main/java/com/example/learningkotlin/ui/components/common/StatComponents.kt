@@ -1,6 +1,7 @@
 package com.example.learningkotlin.ui.components.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -22,12 +23,13 @@ fun StatCard(
     value: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    containerColor: Color = Color(0xFF1C1C1E)
+    containerColor: Color = Color.White.copy(alpha = 0.05f)
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(containerColor)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
             .padding(12.dp)
     ) {
         Column {
@@ -53,7 +55,7 @@ fun StatCard(
             Text(
                 text = value,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Black,
                 color = Color.White,
                 maxLines = 1
             )

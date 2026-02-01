@@ -1,6 +1,7 @@
 package com.example.learningkotlin.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +35,7 @@ fun ProfileScreen(
 ) {
     val user = authViewModel.currentUser
     val userEmail = user?.email ?: "User"
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
         topBar = {
@@ -63,10 +65,12 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Profile Section with improved graphics
+            // Profile Section with Glassmorphism
             Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF1C1C1E),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(24.dp)),
+                color = Color.White.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Row(
@@ -77,28 +81,29 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(64.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                            .background(primaryColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = userEmail.take(1).uppercase(),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = primaryColor
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = "Account",
-                            fontSize = 12.sp,
+                            text = "ACCOUNT",
+                            fontSize = 10.sp,
                             color = Color.Gray,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.sp
                         )
                         Text(
                             text = userEmail,
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = Color.White
                         )
                     }
@@ -107,7 +112,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Settings Groups
+            // Settings Groups with Glassmorphism
             SettingsGroup(title = "PREFERENCES") {
                 ProfileMenuItem(
                     icon = Icons.Default.Palette, 
@@ -115,7 +120,7 @@ fun ProfileScreen(
                     subtitle = "Theme color & UI",
                     onClick = onAppSettings
                 )
-                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(start = 56.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 16.dp))
                 ProfileMenuItem(
                     icon = Icons.Default.Notifications, 
                     label = "Notifications",
@@ -130,34 +135,37 @@ fun ProfileScreen(
                     icon = Icons.AutoMirrored.Filled.Help, 
                     label = "Help & Support"
                 )
-                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(start = 56.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 16.dp))
                 ProfileMenuItem(
                     icon = Icons.Default.Info, 
-                    label = "About Hevy"
+                    label = "About App"
                 )
             }
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Logout Button with better styling
-            Button(
+            // Logout Button with Glassmorphism
+            Surface(
                 onClick = {
                     authViewModel.signOut()
                     onLogout()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.05f),
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                shape = RoundedCornerShape(16.dp),
-                elevation = null
+                    .height(56.dp)
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
+                color = Color.White.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Logout", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Logout", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.error)
+                }
             }
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -173,12 +181,15 @@ fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
             style = MaterialTheme.typography.labelMedium,
             color = Color.Gray,
             fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
             modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
         )
         Surface(
-            color = Color(0xFF1C1C1E),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+            color = Color.White.copy(alpha = 0.05f),
+            shape = RoundedCornerShape(24.dp)
         ) {
             Column(content = content)
         }
@@ -192,6 +203,7 @@ fun ProfileMenuItem(
     subtitle: String? = null,
     onClick: () -> Unit = {}
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -201,20 +213,21 @@ fun ProfileMenuItem(
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.05f)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(primaryColor.copy(alpha = 0.1f))
+                .border(1.dp, primaryColor.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = primaryColor, modifier = Modifier.size(20.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             if (subtitle != null) {
                 Text(subtitle, color = Color.Gray, fontSize = 12.sp)
             }
         }
-        Icon(Icons.Default.ChevronRight, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.ChevronRight, null, tint = Color.DarkGray, modifier = Modifier.size(20.dp))
     }
 }
