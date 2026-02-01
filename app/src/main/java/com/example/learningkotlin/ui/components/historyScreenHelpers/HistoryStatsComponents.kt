@@ -27,6 +27,14 @@ import java.util.*
 
 @Composable
 fun HistoryDashboard(history: List<FinishedWorkout>) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        HistorySummaryStats(history)
+        WeeklyStatsPager(history)
+    }
+}
+
+@Composable
+fun HistorySummaryStats(history: List<FinishedWorkout>) {
     val totalWorkouts by remember { derivedStateOf { history.size } }
     val totalVolume by remember { derivedStateOf { history.sumOf { it.totalVolume } } }
     val totalDurationHours by remember { derivedStateOf { history.sumOf { it.durationSeconds } / 3600 } }
@@ -41,24 +49,21 @@ fun HistoryDashboard(history: List<FinishedWorkout>) {
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            DashboardStatItem("Workouts", totalWorkouts.toString(), modifier = Modifier.weight(1f))
-            DashboardStatItem("Volume", volumeDisplay, modifier = Modifier.weight(1f))
-            DashboardStatItem("Time", "${totalDurationHours}h", modifier = Modifier.weight(1f))
-        }
-        WeeklyStatsPager(history)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        DashboardStatItem("Workouts", totalWorkouts.toString(), modifier = Modifier.weight(1f))
+        DashboardStatItem("Volume", volumeDisplay, modifier = Modifier.weight(1f))
+        DashboardStatItem("Time", "${totalDurationHours}h", modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
 fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
-    Card(
-        modifier = modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+    Surface(
+        modifier = modifier.border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
+        color = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -71,7 +76,8 @@ fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
                 fontSize = 10.sp, 
                 color = Color.Gray, 
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.5.sp
             )
             Text(
                 text = value, 
@@ -88,11 +94,11 @@ fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
 fun WeeklyStatsPager(history: List<FinishedWorkout>) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+        color = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -143,8 +149,8 @@ fun WeeklyGraph(
             (0..6).map { dayOffset ->
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, -dayOffset)
-                val start = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
-                val end = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59) }.timeInMillis
+                val start = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
+                val end = cal.apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999) }.timeInMillis
                 
                 val dayValue = history.filter { it.date in start..end }.sumOf { getValue(it) }
                 val dayName = SimpleDateFormat("EE", Locale.getDefault()).format(cal.time).replace(".", "").uppercase()
@@ -160,7 +166,7 @@ fun WeeklyGraph(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = primaryColor, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
         Spacer(modifier = Modifier.height(20.dp))
         Row(
@@ -180,7 +186,7 @@ fun WeeklyGraph(
                                 .width(16.dp)
                                 .fillMaxHeight(barHeight.coerceIn(0.05f, 1f))
                                 .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(if (value > 0) primaryColor else Color.DarkGray.copy(alpha = 0.2f))
+                                .background(if (value > 0) primaryColor else Color.White.copy(alpha = 0.1f))
                         )
                     }
                     Box(modifier = Modifier.height(16.dp), contentAlignment = Alignment.Center) {
@@ -199,11 +205,11 @@ fun WeeklyGraph(
 fun WorkoutStatsPagerCard(history: List<FinishedWorkout>) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+        color = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {

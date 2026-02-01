@@ -2,7 +2,7 @@ package com.example.learningkotlin.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
@@ -16,8 +16,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
-import com.example.learningkotlin.ui.components.historyScreenHelpers.HistoryDashboard
+import com.example.learningkotlin.ui.components.historyScreenHelpers.HistorySummaryStats
 import com.example.learningkotlin.ui.components.historyScreenHelpers.HistoryItem
+import com.example.learningkotlin.ui.components.historyScreenHelpers.WeeklyStatsPager
 import com.example.learningkotlin.ui.components.historyScreenHelpers.WorkoutStatsPagerCard
 
 @Composable
@@ -70,41 +71,68 @@ fun WorkoutHistoryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 8.dp))
+                    Spacer(modifier = Modifier.height(padding.calculateTopPadding() + 16.dp))
                     Text(
-                        text = "History",
+                        text = "Workout History",
                         style = MaterialTheme.typography.headlineMedium,
                         color = Color.White,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
                     )
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
 
-                item { HistoryDashboard(sortedHistory) }
+                // Overall Stats (Row of 3 separate cards)
+                item { 
+                    HistorySummaryStats(sortedHistory)
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
                 
-                item { WorkoutStatsPagerCard(sortedHistory) }
+                // Weekly Graphs (Separate glass card)
+                item { 
+                    WeeklyStatsPager(sortedHistory)
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+                
+                // Consistency & Muscles (Separate glass card)
+                item { 
+                    WorkoutStatsPagerCard(sortedHistory)
+                    Spacer(modifier = Modifier.height(28.dp))
+                }
 
                 item {
                     Text(
-                        text = "Recent Workouts",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "RECENT WORKOUTS",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
                     )
                 }
 
-                items(sortedHistory, key = { it.id }) { workout ->
-                    HistoryItem(
-                        workout = workout, 
-                        allHistory = history,
-                        onClick = { onWorkoutClick(workout) },
-                        onDelete = { onDeleteWorkout(workout.id) }
-                    )
+                itemsIndexed(sortedHistory, key = { _, workout -> workout.id }) { index, workout ->
+                    Column {
+                        HistoryItem(
+                            workout = workout, 
+                            allHistory = history,
+                            onClick = { onWorkoutClick(workout) },
+                            onDelete = { onDeleteWorkout(workout.id) }
+                        )
+                        
+                        if (index < sortedHistory.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+                                color = Color.White.copy(alpha = 0.12f),
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
                 }
-                item { Spacer(modifier = Modifier.height(bottomBarPadding + 32.dp)) }
+                item { Spacer(modifier = Modifier.height(bottomBarPadding + 40.dp)) }
             }
         }
     }

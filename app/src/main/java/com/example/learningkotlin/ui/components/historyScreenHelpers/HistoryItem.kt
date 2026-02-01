@@ -17,11 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.learningkotlin.model.FinishedWorkout
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,37 +34,68 @@ fun HistoryItem(
     onClick: () -> Unit, 
     onDelete: () -> Unit
 ) {
+    val user = remember { FirebaseAuth.getInstance().currentUser }
+    val displayName = user?.displayName ?: user?.email?.split("@")?.firstOrNull() ?: "Athlete"
+    val photoUrl = user?.photoUrl
+    
     val dateStr = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.US).format(Date(workout.date))
     var showMenu by remember { mutableStateOf(false) }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(0.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Column(modifier = Modifier.padding(vertical = 16.dp)) {
-            // Header: User + Date + More
+        // Reduced start padding from 14dp to 8dp to move icon further left
+        Column(modifier = Modifier.padding(start = 8.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)) {
+            // Header: Actual User + Date + More
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Placeholder Avatar
+                    // Actual User Avatar
                     Box(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.DarkGray.copy(alpha = 0.3f)),
+                            .background(primaryColor.copy(alpha = 0.1f))
+                            .border(1.dp, primaryColor.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, null, tint = Color.Gray)
+                        if (photoUrl != null) {
+                            AsyncImage(
+                                model = photoUrl.toString(),
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = displayName.take(1).uppercase(),
+                                color = primaryColor,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = "User", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                        Text(text = dateStr, color = Color.Gray, fontSize = 12.sp)
+                        Text(
+                            text = displayName, 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 15.sp, 
+                            color = Color.White
+                        )
+                        Text(
+                            text = dateStr, 
+                            color = Color.Gray, 
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
                 Box {
@@ -91,33 +124,47 @@ fun HistoryItem(
                 }
             }
             
+            Spacer(modifier = Modifier.height(18.dp))
+            
+            // Workout Name - Indented slightly more to align with the text in the header
+            Text(
+                text = workout.name, 
+                fontWeight = FontWeight.Black, 
+                fontSize = 22.sp, 
+                color = Color.White,
+                letterSpacing = (-0.5).sp,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Workout Name
-            Text(text = workout.name, fontWeight = FontWeight.Black, fontSize = 22.sp, color = Color.White)
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Stats Row
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // Stats Row with Glass Pills
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp), 
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 HistoryStatItem("Time", formatDuration(workout.durationSeconds), modifier = Modifier.weight(1f))
                 HistoryStatItem("Volume", "${workout.totalVolume.toInt()} kg", modifier = Modifier.weight(1f))
             }
             
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             // Exercises Preview
             val previewLimit = 3
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 workout.exercises.take(previewLimit).forEach { exercise ->
                     val isPR = isPersonalRecord(exercise.name, exercise.sets.maxOfOrNull { it.weight } ?: 0.0, workout.date, allHistory)
                     
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(44.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.05f)),
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             val imagePath = exercise.imagePath
@@ -126,30 +173,32 @@ fun HistoryItem(
                                 AsyncImage(
                                     model = coilModel, 
                                     contentDescription = null, 
-                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.FitnessCenter, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.FitnessCenter, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
                             }
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "${exercise.sets.size} sets ${exercise.name}",
                                     color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                                 if (isPR) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Surface(
-                                        color = Color(0xFFFFD700).copy(alpha = 0.2f),
-                                        shape = RoundedCornerShape(4.dp)
+                                        color = Color(0xFFFFD700).copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.2f))
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             Icon(
                                                 Icons.Default.Star, 
@@ -161,8 +210,8 @@ fun HistoryItem(
                                             Text(
                                                 "PR", 
                                                 color = Color(0xFFFFD700), 
-                                                fontSize = 10.sp, 
-                                                fontWeight = FontWeight.Bold
+                                                fontSize = 9.sp, 
+                                                fontWeight = FontWeight.Black
                                             )
                                         }
                                     }
@@ -174,19 +223,14 @@ fun HistoryItem(
                 
                 if (workout.exercises.size > previewLimit) {
                     Text(
-                        text = "And ${workout.exercises.size - previewLimit} more exercises",
-                        color = Color.Gray,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(top = 4.dp, start = 64.dp)
+                        text = "+ ${workout.exercises.size - previewLimit} more exercises",
+                        color = primaryColor.copy(alpha = 0.7f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 58.dp)
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(
-                color = Color.DarkGray.copy(alpha = 0.5f),
-                thickness = 0.5.dp
-            )
         }
     }
 }
@@ -211,9 +255,25 @@ private fun isPersonalRecord(
 
 @Composable
 fun HistoryStatItem(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(text = label, color = Color.Gray, fontSize = 12.sp)
-        Text(text = value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.03f))
+            .padding(vertical = 8.dp, horizontal = 12.dp)
+    ) {
+        Text(
+            text = label.uppercase(), 
+            color = Color.Gray, 
+            fontSize = 9.sp, 
+            fontWeight = FontWeight.Bold, 
+            letterSpacing = 0.5.sp
+        )
+        Text(
+            text = value, 
+            color = Color.White, 
+            fontSize = 16.sp, 
+            fontWeight = FontWeight.Black
+        )
     }
 }
 
