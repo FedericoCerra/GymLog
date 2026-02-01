@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.ui.screens.*
 import com.example.learningkotlin.viewmodel.HomeViewModel
@@ -42,6 +44,7 @@ fun NavGraph(
     startWorkoutId: Int? = null,
     onStartWorkoutHandled: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val homeViewModel: HomeViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
     var selectedHistoryWorkout by remember { mutableStateOf<FinishedWorkout?>(null) }
@@ -130,6 +133,8 @@ fun NavGraph(
                         AuthScreen(
                             viewModel = authViewModel,
                             onAuthSuccess = {
+                                ThemePreferences.load(context) // Load settings for the new user
+                                homeViewModel.loadInitialData() // Reload data for the new user
                                 navController.navigate("home") {
                                     popUpTo("auth") { inclusive = true }
                                 }
@@ -163,6 +168,9 @@ fun NavGraph(
                             onHelpSupport = { navController.navigate("help_support") },
                             onAboutApp = { navController.navigate("about_app") },
                             onLogout = {
+                                authViewModel.signOut()
+                                homeViewModel.clearData()
+                                ThemePreferences.reset() // Reset UI theme back to default immediately
                                 navController.navigate("auth") {
                                     popUpTo(0) { inclusive = true }
                                 }

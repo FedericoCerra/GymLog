@@ -5,9 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.edit
+import com.google.firebase.auth.FirebaseAuth
 
 object ThemePreferences {
-    private const val PREFS_NAME = "theme_prefs"
+    private fun getPrefsName(): String {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "default"
+        return "theme_prefs_$userId"
+    }
+
     private const val KEY_PRIMARY_COLOR = "primary_color"
     private const val KEY_WEIGHT_UNIT = "weight_unit"
     private const val KEY_AUTO_REST_TIMER = "auto_rest_timer"
@@ -22,8 +27,17 @@ object ThemePreferences {
     val showOverlayBubble = mutableStateOf(true)
     val showWorkoutNotification = mutableStateOf(true)
 
+    fun reset() {
+        primaryColor.value = Color(0xFF2196F3)
+        weightUnit.value = "kg"
+        autoRestTimer.value = true
+        timerSound.value = true
+        showOverlayBubble.value = true
+        showWorkoutNotification.value = true
+    }
+
     fun load(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         
         val argb = prefs.getInt(KEY_PRIMARY_COLOR, Color(0xFF2196F3).toArgb())
         primaryColor.value = Color(argb)
@@ -37,37 +51,37 @@ object ThemePreferences {
 
     fun saveColor(context: Context, color: Color) {
         primaryColor.value = color
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putInt(KEY_PRIMARY_COLOR, color.toArgb()) }
     }
 
     fun saveWeightUnit(context: Context, unit: String) {
         weightUnit.value = unit
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putString(KEY_WEIGHT_UNIT, unit) }
     }
 
     fun saveAutoRestTimer(context: Context, enabled: Boolean) {
         autoRestTimer.value = enabled
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_AUTO_REST_TIMER, enabled) }
     }
 
     fun saveTimerSound(context: Context, enabled: Boolean) {
         timerSound.value = enabled
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_TIMER_SOUND, enabled) }
     }
 
     fun saveShowOverlayBubble(context: Context, enabled: Boolean) {
         showOverlayBubble.value = enabled
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_SHOW_OVERLAY_BUBBLE, enabled) }
     }
 
     fun saveShowWorkoutNotification(context: Context, enabled: Boolean) {
         showWorkoutNotification.value = enabled
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_SHOW_WORKOUT_NOTIFICATION, enabled) }
     }
 
