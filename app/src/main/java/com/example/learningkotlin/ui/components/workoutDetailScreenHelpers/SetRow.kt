@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.model.SetType
 import com.example.learningkotlin.model.WorkoutSet
 import com.example.learningkotlin.viewmodel.ExercisePersonalBests
@@ -45,9 +45,18 @@ fun SetRow(
     previousReps: Int? = null,
     personalBests: ExercisePersonalBests = ExercisePersonalBests()
 ) {
-    // 1. Initialize State
-    var weightText by remember {
-        mutableStateOf(if (set.weight == 0.0) "" else set.weight.toString().removeSuffix(".0"))
+    val weightUnit = ThemePreferences.weightUnit.value
+    val isLbs = weightUnit == "lbs"
+
+    // Helper to display weight correctly based on unit
+    fun Double.toDisplay(): String = ThemePreferences.formatWeight(this)
+    fun String.toKg(): Double {
+        val d = this.toDoubleOrNull() ?: 0.0
+        return if (isLbs) d / 2.20462 else d
+    }
+
+    var weightText by remember(set.weight, weightUnit) {
+        mutableStateOf(if (set.weight == 0.0) "" else set.weight.toDisplay())
     }
     var repsText by remember {
         mutableStateOf(if (set.reps == 0) "" else set.reps.toString())
@@ -57,7 +66,6 @@ fun SetRow(
     var showMenu by remember { mutableStateOf(false) }
     var localSetType by remember(set.type) { mutableStateOf(set.type) }
 
-    // Logic: PR check (Only if checked)
     val isWeightPR = remember(set.weight, personalBests.maxWeight, isChecked) {
         isChecked && set.weight > personalBests.maxWeight && personalBests.maxWeight > 0
     }
@@ -73,8 +81,6 @@ fun SetRow(
     set.isVolumePR = isVolumePR
 
     val hasAnyPR = isWeightPR || is1RMPR || isVolumePR
-
-    // Validation: Only allow checking if weight > 0 and reps > 0
     val isDataValid = (set.weight > 0.0 && set.reps > 0)
     val rowColor = if (isChecked) Color(0xFF4CAF50).copy(alpha = 0.2f) else Color.Transparent
 
@@ -85,7 +91,6 @@ fun SetRow(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Set Number and Type
         Box(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.Center
@@ -98,9 +103,9 @@ fun SetRow(
             }
             val typeColor = when(localSetType) {
                 SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
-                SetType.WARMUP -> Color(0xFFFFB300) // Orange
-                SetType.DROP -> Color(0xFF9C27B0) // Purple
-                SetType.FAILURE -> Color(0xFFE53935) // Red
+                SetType.WARMUP -> Color(0xFFFFB300)
+                SetType.DROP -> Color(0xFF9C27B0)
+                SetType.FAILURE -> Color(0xFFE53935)
             }
 
             Text(
@@ -108,9 +113,7 @@ fun SetRow(
                 fontWeight = FontWeight.Black,
                 color = typeColor,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showMenu = true }
+                modifier = Modifier.fillMaxWidth().clickable { showMenu = true }
             )
             
             MaterialTheme(
@@ -120,9 +123,7 @@ fun SetRow(
                 DropdownMenu(
                     expanded = showMenu, 
                     onDismissRequest = { showMenu = false },
-                    modifier = Modifier
-                        .background(Color(0xFF1C1C1E))
-                        .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                    modifier = Modifier.background(Color(0xFF1C1C1E)).border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                 ) {
                     SetType.values().forEach { type ->
                         DropdownMenuItem(
@@ -150,9 +151,8 @@ fun SetRow(
             }
         }
 
-        // 2. Previous
         val previousText = if (previousWeight != null && previousReps != null) {
-            "${previousWeight.toString().removeSuffix(".0")} x $previousReps"
+            "${previousWeight.toDisplay()} x $previousReps"
         } else {
             "-"
         }
@@ -164,19 +164,17 @@ fun SetRow(
             fontSize = 13.sp
         )
 
-        // 3. Weight Input
         TableInput(
             value = weightText,
             onValueChange = {
                 weightText = it
-                set.weight = it.toDoubleOrNull() ?: 0.0
+                set.weight = it.toKg()
                 onValueChange()
             },
             modifier = Modifier.weight(1.5f),
             imeAction = ImeAction.Next
         )
 
-        // 4. Reps Input
         TableInput(
             value = repsText,
             onValueChange = {
@@ -188,22 +186,12 @@ fun SetRow(
             imeAction = ImeAction.Done
         )
 
-        // 5. Checkbox (Only visible if workout is ACTIVE)
         if (isWorkoutActive) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AnimatedVisibility(
-                        visible = hasAnyPR,
-                        enter = fadeIn() + scaleIn()
-                    ) {
-                        Icon(
-                            Icons.Default.Star, 
-                            null, 
-                            tint = Color(0xFFFFD700), 
-                            modifier = Modifier.size(16.dp).padding(end = 4.dp)
-                        )
+                    AnimatedVisibility(visible = hasAnyPR, enter = fadeIn() + scaleIn()) {
+                        Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp).padding(end = 4.dp))
                     }
-                    
                     Surface(
                         onClick = {
                             if (isDataValid) {
@@ -219,7 +207,7 @@ fun SetRow(
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         },
                         modifier = Modifier.size(28.dp),
-                        enabled = isDataValid || isChecked // Allow unchecking even if data became invalid
+                        enabled = isDataValid || isChecked
                     ) {
                         if (isChecked) {
                             Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
@@ -231,7 +219,6 @@ fun SetRow(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TableInput(
     value: String,
@@ -241,49 +228,22 @@ private fun TableInput(
     placeholder: String = "0"
 ) {
     val focusManager = LocalFocusManager.current
-    
-    // Remove the KeyboardVisibility listener that was clearing focus
-    // The previous implementation was clearing focus whenever the keyboard Bottom inset changed,
-    // which happens on every character stroke in some Android versions.
-
     Box(
-        modifier = modifier
-            .padding(horizontal = 4.dp)
-            .height(36.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
+        modifier = modifier.padding(horizontal = 4.dp).height(36.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.Center
     ) {
         if (value.isEmpty()) {
-            Text(
-                text = placeholder,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
+            Text(text = placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 16.sp, textAlign = TextAlign.Center)
         }
-
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            textStyle = TextStyle(
-                textAlign = TextAlign.Center,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            ),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = imeAction
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { focusManager.clearFocus() },
-                onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Next) }
-            ),
+            textStyle = TextStyle(textAlign = TextAlign.Center, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }, onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Next) }),
             singleLine = true,
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
         )
     }
 }

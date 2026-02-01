@@ -204,7 +204,7 @@ class WorkoutOverlayService : Service() {
             .setContentText("Workout: $workoutName is in progress")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
-            .setOngoing(true)
+            .setOngoing(false) // Changed to false to make it dismissible
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }

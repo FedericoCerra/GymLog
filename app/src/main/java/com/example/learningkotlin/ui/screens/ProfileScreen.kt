@@ -31,6 +31,8 @@ fun ProfileScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit,
     onAppSettings: () -> Unit,
+    onHelpSupport: () -> Unit,
+    onAboutApp: () -> Unit,
     onLogout: () -> Unit
 ) {
     val user = authViewModel.currentUser
@@ -117,7 +119,7 @@ fun ProfileScreen(
                 ProfileMenuItem(
                     icon = Icons.Default.Palette, 
                     label = "App Settings", 
-                    subtitle = "Theme color & UI",
+                    subtitle = "Theme, units & UI",
                     onClick = onAppSettings
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 16.dp))
@@ -133,12 +135,14 @@ fun ProfileScreen(
             SettingsGroup(title = "SUPPORT") {
                 ProfileMenuItem(
                     icon = Icons.AutoMirrored.Filled.Help, 
-                    label = "Help & Support"
+                    label = "Help & Support",
+                    onClick = onHelpSupport
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 16.dp))
                 ProfileMenuItem(
                     icon = Icons.Default.Info, 
-                    label = "About App"
+                    label = "About App",
+                    onClick = onAboutApp
                 )
             }
 

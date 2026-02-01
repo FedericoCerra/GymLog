@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.learningkotlin.data.ExerciseLibrary
+import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.model.Exercise
 import com.example.learningkotlin.model.ExerciseDefinition
 import com.example.learningkotlin.model.Workout
@@ -42,6 +43,7 @@ fun WorkoutDetailScreen(
     var showFinishConfirmationDialog by remember { mutableStateOf(false) }
 
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
+    val weightUnit = ThemePreferences.weightUnit.value
 
     LaunchedEffect(key1 = workout.isActive) {
         while (workout.isActive) {
@@ -59,13 +61,20 @@ fun WorkoutDetailScreen(
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
     }
 
-    // Force a new list instance on every refresh to ensure LazyColumn detects changes (adds/removes/updates)
+    fun convertWeight(kg: Double): String {
+        val value = if (weightUnit == "lbs") kg * 2.20462 else kg
+        return "%.1f %s".format(value, weightUnit).removeSuffix(".0 $weightUnit")
+    }
+
+    // Force a new list instance on every refresh to ensure LazyColumn detects changes
     val workoutExercises = remember(refreshTrigger) { workout.exercises.toList() }
 
     val totalSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.size } }
     val completedSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.count { s -> s.isDone } } }
+    
     val totalVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
     val completedVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
+    
     val totalRestSeconds = remember(workoutExercises) { workoutExercises.sumOf { it.restTimer * it.sets.size } }
     val estTimeSeconds = remember(totalRestSeconds, totalSets) { totalRestSeconds + (totalSets * 120) }
 
@@ -113,7 +122,7 @@ fun WorkoutDetailScreen(
                         mainTimerLabel = if (workout.isActive) "Duration" else "Est. Time",
                         mainTimerValue = if (workout.isActive) formatDuration(workoutDurationSeconds) else formatDuration(estTimeSeconds.toLong()),
                         volumeLabel = if (workout.isActive) "Volume" else "Total Volume",
-                        volumeValue = "${if (workout.isActive) completedVolume.toInt() else totalVolume.toInt()} kg",
+                        volumeValue = convertWeight(if (workout.isActive) completedVolume else totalVolume),
                         setsLabel = if (workout.isActive) "Sets Done" else "Total Sets",
                         setsValue = if (workout.isActive) "$completedSets/$totalSets" else "$totalSets"
                     )
@@ -139,7 +148,7 @@ fun WorkoutDetailScreen(
                             exerciseToReplace = exercise
                             showSelectExerciseDialog = true
                         },
-                        onStartTimer = { duration -> viewModel.startRestTimer(duration) },
+                        onStartTimer = { duration -> viewModel.onSetChecked(duration) },
                         onInfoClick = {
                             val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
                             if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
@@ -206,32 +215,23 @@ fun WorkoutDetailScreen(
                     },
                     onExerciseSelected = { def ->
                         if (exerciseToReplace != null) {
-                            // REPLACE LOGIC: Keep sets count, update info and values from history
                             exerciseToReplace?.let { ex ->
                                 ex.name = def.name
                                 ex.imagePath = if (def.images.isNotEmpty()) def.images[0] else null
-                                
-                                // Fetch history for the NEW exercise
                                 val historicalSets = viewModel.getPreviousSetsForExercise(def.name)
-                                
-                                // Map historical values to existing sets
                                 ex.sets.forEachIndexed { index, currentSet ->
                                     historicalSets.getOrNull(index)?.let { histSet ->
                                         currentSet.weight = histSet.weight
                                         currentSet.reps = histSet.reps
                                     } ?: run {
-                                        // If no history for this set index, reset to 0
                                         currentSet.weight = 0.0
                                         currentSet.reps = 0
                                     }
                                 }
                             }
                         } else {
-                            // ADD LOGIC
                             val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
                             val historicalSets = viewModel.getPreviousSetsForExercise(def.name)
-                            
-                            // If history exists, pre-fill the first set. Otherwise 0.
                             val initialWeight = historicalSets.firstOrNull()?.weight ?: 0.0
                             val initialReps = historicalSets.firstOrNull()?.reps ?: 0
 

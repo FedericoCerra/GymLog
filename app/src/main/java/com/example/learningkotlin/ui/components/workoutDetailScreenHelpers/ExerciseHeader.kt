@@ -35,9 +35,11 @@ fun ExerciseHeader(
     restTimer: Int,
     notes: String,
     imagePath: String?,
+    isWorkoutActive: Boolean,
     onDeleteExercise: () -> Unit,
     onReplaceExercise: () -> Unit,
     onTimerChange: (Int) -> Unit,
+    onManualTimerStart: (Int) -> Unit,
     onInfoClick: () -> Unit,
     onNotesChange: (String) -> Unit,
     onClearSets: () -> Unit
@@ -153,7 +155,9 @@ fun ExerciseHeader(
         ) {
             RestTimerChip(
                 currentSeconds = restTimer,
-                onTimeSelected = onTimerChange
+                isWorkoutActive = isWorkoutActive,
+                onTimeSelected = onTimerChange,
+                onManualStart = onManualTimerStart
             )
         }
     }

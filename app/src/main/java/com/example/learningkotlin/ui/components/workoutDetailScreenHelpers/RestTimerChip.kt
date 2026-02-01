@@ -2,6 +2,9 @@ package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,6 +13,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.learningkotlin.data.ThemePreferences
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -38,7 +43,9 @@ import kotlin.math.sin
 @Composable
 fun RestTimerChip(
     currentSeconds: Int,
-    onTimeSelected: (Int) -> Unit
+    isWorkoutActive: Boolean,
+    onTimeSelected: (Int) -> Unit,
+    onManualStart: (Int) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -49,19 +56,60 @@ fun RestTimerChip(
     }
 
     Surface(
-        onClick = { showDialog = true },
         shape = CircleShape,
         color = Color(0xFF1C1C1E),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
         modifier = Modifier.height(32.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        ) {
-            Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text = formatRestTime(currentSeconds), color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 1. Timer Display & Dialog trigger
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { showDialog = true }
+                    .padding(start = 12.dp, end = if (isWorkoutActive) 8.dp else 12.dp)
+                    .fillMaxHeight()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer, 
+                    contentDescription = null, 
+                    tint = MaterialTheme.colorScheme.primary, 
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = formatRestTime(currentSeconds), 
+                    color = Color.White, 
+                    fontWeight = FontWeight.Bold, 
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            if (isWorkoutActive) {
+                // 2. Vertical Divider Line
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight(0.5f)
+                        .background(Color.White.copy(alpha = 0.15f))
+                )
+
+                // 3. Manual Start Button - Smaller footprint
+                Box(
+                    modifier = Modifier
+                        .clickable { onManualStart(currentSeconds) }
+                        .padding(start = 6.dp, end = 10.dp)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow, 
+                        contentDescription = "Start Timer", 
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 
@@ -110,7 +158,7 @@ fun CircularTimePicker(
     maxSeconds: Int = 300
 ) {
     val focusManager = LocalFocusManager.current
-    val isWorkoutDuration = maxSeconds > 600 // Logic to check if we're picking workout time or rest time
+    val isWorkoutDuration = maxSeconds > 600
     
     val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     LaunchedEffect(isKeyboardVisible) {
@@ -119,7 +167,6 @@ fun CircularTimePicker(
         }
     }
     
-    // Determine labels based on usage
     val topLabel = if (isWorkoutDuration) (initialSeconds / 3600).toString() else (initialSeconds / 60).toString()
     val bottomLabel = if (isWorkoutDuration) ((initialSeconds % 3600) / 60).toString().padStart(2, '0') else (initialSeconds % 60).toString().padStart(2, '0')
     val subText = if (isWorkoutDuration) "HH:MM" else "MM:SS"
@@ -155,7 +202,6 @@ fun CircularTimePicker(
                         if (normalizedAngle < 0) normalizedAngle += 360f
                         
                         val newSeconds = ((normalizedAngle / 360f) * maxSeconds).toInt()
-                        // Snapping: 5 mins for workout, 5 seconds for rest
                         val step = if (isWorkoutDuration) 300 else 5
                         val snappedSeconds = (newSeconds / step) * step
                         
@@ -257,16 +303,10 @@ fun CircularTimePicker(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     cursorBrush = SolidColor(primaryColor),
-                    modifier = Modifier.width(60.dp)
+                    modifier = Modifier.width(if (bottomText.length > 1) 60.dp else 45.dp)
                 )
             }
-            Text(
-                text = subText,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.Gray,
-                letterSpacing = 2.sp
-            )
+            Text(subText, color = Color.White.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
     }
 }

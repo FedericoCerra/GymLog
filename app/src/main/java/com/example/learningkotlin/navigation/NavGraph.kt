@@ -73,7 +73,8 @@ fun NavGraph(
                                    workoutIdInRoute == activeWorkoutId
         
         // Hide bubble if viewing active workout OR in settings screens
-        val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings"
+        val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings" || 
+                             currentRoute == "help_support" || currentRoute == "about_app"
         
         WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
     }
@@ -90,7 +91,8 @@ fun NavGraph(
                 val workoutIdInRoute = navBackStackEntry?.arguments?.getInt("workoutId")
                 val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
                                            workoutIdInRoute == activeWorkoutId
-                val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings"
+                val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings" || 
+                                     currentRoute == "help_support" || currentRoute == "about_app"
                 
                 WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
             }
@@ -158,6 +160,8 @@ fun NavGraph(
                             authViewModel = authViewModel,
                             onBack = { navController.popBackStack() },
                             onAppSettings = { navController.navigate("app_settings") },
+                            onHelpSupport = { navController.navigate("help_support") },
+                            onAboutApp = { navController.navigate("about_app") },
                             onLogout = {
                                 navController.navigate("auth") {
                                     popUpTo(0) { inclusive = true }
@@ -168,6 +172,18 @@ fun NavGraph(
 
                     composable("app_settings") {
                         AppSettingsScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("help_support") {
+                        HelpSupportScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("about_app") {
+                        AboutAppScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
