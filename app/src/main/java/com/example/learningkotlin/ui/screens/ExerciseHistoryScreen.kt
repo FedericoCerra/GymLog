@@ -2,6 +2,7 @@ package com.example.learningkotlin.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.data.ThemePreferences
+import com.example.learningkotlin.model.FinishedWorkout
 import com.example.learningkotlin.viewmodel.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -38,7 +40,8 @@ import java.util.*
 fun ExerciseHistoryScreen(
     exerciseName: String,
     viewModel: HomeViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onWorkoutClick: (FinishedWorkout) -> Unit = {}
 ) {
     val prs = viewModel.getPersonalBests(exerciseName)
     val history = viewModel.history.filter { workout ->
@@ -199,7 +202,9 @@ fun ExerciseHistoryScreen(
                 val year = SimpleDateFormat("yyyy", Locale.getDefault()).format(date)
                 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onWorkoutClick(workout) },
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
                     shape = RoundedCornerShape(20.dp),
                     border = androidx.compose.foundation.BorderStroke(

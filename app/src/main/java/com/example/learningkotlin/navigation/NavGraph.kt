@@ -254,7 +254,11 @@ fun NavGraph(
                         ExerciseHistoryScreen(
                             exerciseName = name,
                             viewModel = homeViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onWorkoutClick = { workout ->
+                                selectedHistoryWorkout = workout
+                                navController.navigate("history_recap")
+                            }
                         )
                     }
 
