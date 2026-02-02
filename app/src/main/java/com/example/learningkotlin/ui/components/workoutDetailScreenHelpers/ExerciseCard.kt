@@ -51,7 +51,7 @@ fun ExerciseCard(
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
             key(exercise.restTimer, exercise.notes) {
                 ExerciseHeader(
                     exerciseName = exercise.name,
@@ -76,130 +76,133 @@ fun ExerciseCard(
                         exercise.sets.clear()
                         localRefreshTrigger++
                         onUpdate()
-                    }
+                    },
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            AnimatedVisibility(
-                visible = showWarmupConfig,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                WarmupConfigPanel(
-                    initialWeight = exercise.sets.firstOrNull { it.type == SetType.NORMAL }?.weight ?: 0.0,
-                    initialReps = exercise.sets.firstOrNull { it.type == SetType.NORMAL }?.reps ?: 10,
-                    onDismiss = { showWarmupConfig = false },
-                    onGenerate = { warmupSets, targetWeight, targetReps ->
-                        val nextIdStart = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
-                        val newWarmupSets = warmupSets.mapIndexed { i, s -> 
-                            WorkoutSet(nextIdStart + i, s.weight, s.reps, false, SetType.WARMUP)
-                        }
-                        exercise.sets.addAll(0, newWarmupSets)
-                        val hasTargetSet = exercise.sets.any { it.type == SetType.NORMAL && it.weight == targetWeight }
-                        if (!hasTargetSet) {
-                            val defaultSet = exercise.sets.find { it.type == SetType.NORMAL && (it.weight == 0.0 || it.weight == previousSets.firstOrNull()?.weight) }
-                            if (defaultSet != null) {
-                                defaultSet.weight = targetWeight
-                                defaultSet.reps = targetReps
-                            } else {
-                                val finalId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
-                                exercise.sets.add(WorkoutSet(finalId, targetWeight, targetReps, false, SetType.NORMAL))
-                            }
-                        }
-                        localRefreshTrigger++
-                        onUpdate()
-                        showWarmupConfig = false
-                    }
-                )
-            }
-
-            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                HeaderLabel("SET", Modifier.weight(1f))
-                HeaderLabel("PREVIOUS", Modifier.weight(2f))
-                HeaderLabel(weightUnit, Modifier.weight(1.5f))
-                HeaderLabel("REPS", Modifier.weight(1.5f))
-                if (isWorkoutActive) {
-                    Spacer(modifier = Modifier.weight(1f)) 
-                }
-            }
-
-            val currentSets = remember(localRefreshTrigger, exercise.sets.size) { exercise.sets.toList() }
-            
-            // Find indices of the BEST sets in current workout session to ensure the badge ONLY shows on the LATEST one
-            val doneSets = currentSets.filter { it.isDone }
-            
-            val bestWeight = doneSets.maxOfOrNull { it.weight } ?: -1.0
-            val lastBestWeightId = doneSets.findLast { it.weight == bestWeight }?.id ?: -1
-            
-            val best1RM = doneSets.maxOfOrNull { it.calculate1RM() } ?: -1.0
-            val lastBest1RMId = doneSets.findLast { it.calculate1RM() == best1RM }?.id ?: -1
-            
-            val bestVolume = doneSets.maxOfOrNull { it.calculateVolume() } ?: -1.0
-            val lastBestVolumeId = doneSets.findLast { it.calculateVolume() == bestVolume }?.id ?: -1
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                currentSets.forEachIndexed { index, set ->
-                    val prevSet = previousSets.getOrNull(index)
-                    key(set.id) {
-                        SetRow(
-                            index = index + 1,
-                            set = set,
-                            isWorkoutActive = isWorkoutActive,
-                            onDelete = {
-                                exercise.sets.remove(set)
-                                localRefreshTrigger++
-                                onUpdate()
-                            },
-                            onCheck = { isChecked ->
-                                localRefreshTrigger++
-                                onUpdate() 
-                                if (isChecked) onStartTimer(exercise.restTimer)
-                            },
-                            onValueChange = { onUpdate() },
-                            onPRDetected = { title, desc -> onPRDetected(title, desc, exercise.imagePath) },
-                            isBestWeightInWorkout = set.isDone && set.id == lastBestWeightId && bestWeight > 0,
-                            isBest1RMInWorkout = set.isDone && set.id == lastBest1RMId && best1RM > 0,
-                            isBestVolumeInWorkout = set.isDone && set.id == lastBestVolumeId && bestVolume > 0,
-                            previousWeight = prevSet?.weight,
-                            previousReps = prevSet?.reps,
-                            personalBests = personalBests
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(42.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
-                        val lastSet = exercise.sets.lastOrNull()
-                        val newWeight = lastSet?.weight ?: 0.0
-                        val newReps = lastSet?.reps ?: 0
-                        val nextId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
-                        exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
-                        localRefreshTrigger++
-                        onUpdate()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface),
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    shape = RoundedCornerShape(8.dp)
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                AnimatedVisibility(
+                    visible = showWarmupConfig,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
                 ) {
-                    Text("+ Add Set", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    WarmupConfigPanel(
+                        initialWeight = exercise.sets.firstOrNull { it.type == SetType.NORMAL }?.weight ?: 0.0,
+                        initialReps = exercise.sets.firstOrNull { it.type == SetType.NORMAL }?.reps ?: 10,
+                        onDismiss = { showWarmupConfig = false },
+                        onGenerate = { warmupSets, targetWeight, targetReps ->
+                            val nextIdStart = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
+                            val newWarmupSets = warmupSets.mapIndexed { i, s -> 
+                                WorkoutSet(nextIdStart + i, s.weight, s.reps, false, SetType.WARMUP)
+                            }
+                            exercise.sets.addAll(0, newWarmupSets)
+                            val hasTargetSet = exercise.sets.any { it.type == SetType.NORMAL && it.weight == targetWeight }
+                            if (!hasTargetSet) {
+                                val defaultSet = exercise.sets.find { it.type == SetType.NORMAL && (it.weight == 0.0 || it.weight == previousSets.firstOrNull()?.weight) }
+                                if (defaultSet != null) {
+                                    defaultSet.weight = targetWeight
+                                    defaultSet.reps = targetReps
+                                } else {
+                                    val finalId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
+                                    exercise.sets.add(WorkoutSet(finalId, targetWeight, targetReps, false, SetType.NORMAL))
+                                }
+                            }
+                            localRefreshTrigger++
+                            onUpdate()
+                            showWarmupConfig = false
+                        }
+                    )
                 }
 
-                if (exercise.sets.none { it.type == SetType.WARMUP }) {
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    HeaderLabel("SET", Modifier.weight(1f))
+                    HeaderLabel("PREVIOUS", Modifier.weight(2f))
+                    HeaderLabel(weightUnit, Modifier.weight(1.5f))
+                    HeaderLabel("REPS", Modifier.weight(1.5f))
+                    if (isWorkoutActive) {
+                        Spacer(modifier = Modifier.weight(1f)) 
+                    }
+                }
+
+                val currentSets = remember(localRefreshTrigger, exercise.sets.size) { exercise.sets.toList() }
+                
+                // Find indices of the BEST sets in current workout session to ensure the badge ONLY shows on the LATEST one
+                val doneSets = currentSets.filter { it.isDone }
+                
+                val bestWeight = doneSets.maxOfOrNull { it.weight } ?: -1.0
+                val lastBestWeightId = doneSets.findLast { it.weight == bestWeight }?.id ?: -1
+                
+                val best1RM = doneSets.maxOfOrNull { it.calculate1RM() } ?: -1.0
+                val lastBest1RMId = doneSets.findLast { it.calculate1RM() == best1RM }?.id ?: -1
+                
+                val bestVolume = doneSets.maxOfOrNull { it.calculateVolume() } ?: -1.0
+                val lastBestVolumeId = doneSets.findLast { it.calculateVolume() == bestVolume }?.id ?: -1
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    currentSets.forEachIndexed { index, set ->
+                        val prevSet = previousSets.getOrNull(index)
+                        key(set.id) {
+                            SetRow(
+                                index = index + 1,
+                                set = set,
+                                isWorkoutActive = isWorkoutActive,
+                                onDelete = {
+                                    exercise.sets.remove(set)
+                                    localRefreshTrigger++
+                                    onUpdate()
+                                },
+                                onCheck = { isChecked ->
+                                    localRefreshTrigger++
+                                    onUpdate() 
+                                    if (isChecked) onStartTimer(exercise.restTimer)
+                                },
+                                onValueChange = { onUpdate() },
+                                onPRDetected = { title, desc -> onPRDetected(title, desc, exercise.imagePath) },
+                                isBestWeightInWorkout = set.isDone && set.id == lastBestWeightId && bestWeight > 0,
+                                isBest1RMInWorkout = set.isDone && set.id == lastBest1RMId && best1RM > 0,
+                                isBestVolumeInWorkout = set.isDone && set.id == lastBestVolumeId && bestVolume > 0,
+                                previousWeight = prevSet?.weight,
+                                previousReps = prevSet?.reps,
+                                personalBests = personalBests
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(42.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Button(
-                        onClick = { showWarmupConfig = !showWarmupConfig },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = Color(0xFFFFB300)),
-                        modifier = Modifier.width(56.dp).fillMaxHeight(),
+                        onClick = {
+                            val lastSet = exercise.sets.lastOrNull()
+                            val newWeight = lastSet?.weight ?: 0.0
+                            val newReps = lastSet?.reps ?: 0
+                            val nextId = (exercise.sets.maxOfOrNull { it.id } ?: 0) + 1
+                            exercise.sets.add(WorkoutSet(nextId, newWeight, newReps, false))
+                            localRefreshTrigger++
+                            onUpdate()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text(text = "W", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text("+ Add Set", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+
+                    if (exercise.sets.none { it.type == SetType.WARMUP }) {
+                        Button(
+                            onClick = { showWarmupConfig = !showWarmupConfig },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = Color(0xFFFFB300)),
+                            modifier = Modifier.width(56.dp).fillMaxHeight(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(text = "W", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        }
                     }
                 }
             }

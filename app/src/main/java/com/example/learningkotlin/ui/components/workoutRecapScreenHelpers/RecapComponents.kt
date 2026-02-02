@@ -113,7 +113,8 @@ fun StatItem(
 fun RecapExerciseItem(
     exercise: Exercise,
     primaryColor: Color,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    onExerciseClick: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     val isImeVisible = WindowInsets.isImeVisible
@@ -128,7 +129,11 @@ fun RecapExerciseItem(
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.size(42.dp).clip(CircleShape).background(Color.White),
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .clickable { onExerciseClick() },
                 contentAlignment = Alignment.Center
             ) {
                 val imagePath = exercise.imagePath
@@ -145,7 +150,13 @@ fun RecapExerciseItem(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = exercise.name, color = primaryColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    text = exercise.name, 
+                    color = primaryColor, 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 18.sp,
+                    modifier = Modifier.clickable { onExerciseClick() }
+                )
                 
                 BasicTextField(
                     value = localNotes,

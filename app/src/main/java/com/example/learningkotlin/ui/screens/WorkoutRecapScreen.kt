@@ -31,6 +31,7 @@ import java.util.*
 fun WorkoutRecapScreen(
     finishedWorkout: FinishedWorkout,
     onClose: () -> Unit,
+    onExerciseClick: (String) -> Unit,
     onSave: ((FinishedWorkout) -> Unit)? = null
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
@@ -174,7 +175,8 @@ fun WorkoutRecapScreen(
                         primaryColor = primaryColor,
                         onUpdate = { 
                             onSave?.invoke(finishedWorkout)
-                        }
+                        },
+                        onExerciseClick = { onExerciseClick(exercise.name) }
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }

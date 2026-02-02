@@ -264,6 +264,9 @@ fun NavGraph(
                             WorkoutRecapScreen(
                                 finishedWorkout = lastWorkout,
                                 onClose = { navController.popBackStack("home", inclusive = false) },
+                                onExerciseClick = { name ->
+                                    navController.navigate("exercise_history/$name")
+                                },
                                 onSave = { updated -> homeViewModel.updateFinishedWorkout(updated) }
                             )
                         } else {
@@ -278,6 +281,9 @@ fun NavGraph(
                                 onClose = {
                                     navController.popBackStack()
                                     selectedHistoryWorkout = null
+                                },
+                                onExerciseClick = { name ->
+                                    navController.navigate("exercise_history/$name")
                                 },
                                 onSave = { updated -> homeViewModel.updateFinishedWorkout(updated) }
                             )

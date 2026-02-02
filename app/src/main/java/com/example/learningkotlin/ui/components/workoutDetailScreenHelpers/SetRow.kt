@@ -206,7 +206,7 @@ fun SetRow(
                             set.isDone = newChecked
                             
                             if (newChecked) {
-                                // 1RM has priority for the popup
+                                // PR detection for notification overlay
                                 when {
                                     is1RMHistoricalPR -> onPRDetected("New 1RM PR!", "1RM: ${set.calculate1RM().toDisplay()} $weightUnit")
                                     isWeightHistoricalPR -> onPRDetected("New Weight PR!", "${set.weight.toDisplay()} $weightUnit")
