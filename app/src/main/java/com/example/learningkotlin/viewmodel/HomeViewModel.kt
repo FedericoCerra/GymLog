@@ -54,7 +54,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         ExerciseLibrary.load(application)
-        ThemePreferences.load(application)
+        viewModelScope.launch {
+            ThemePreferences.load(application)
+        }
         loadInitialData()
     }
 

@@ -37,6 +37,7 @@ import com.example.learningkotlin.viewmodel.HomeViewModel
 import com.example.learningkotlin.viewmodel.AuthViewModel
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.BottomTimerBar
 import com.example.learningkotlin.service.WorkoutOverlayService
+import kotlinx.coroutines.launch
 
 @Composable
 fun NavGraph(
@@ -47,6 +48,7 @@ fun NavGraph(
     val context = LocalContext.current
     val homeViewModel: HomeViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
+    val scope = rememberCoroutineScope()
     var selectedHistoryWorkout by remember { mutableStateOf<FinishedWorkout?>(null) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -133,7 +135,9 @@ fun NavGraph(
                         AuthScreen(
                             viewModel = authViewModel,
                             onAuthSuccess = {
-                                ThemePreferences.load(context) // Load settings for the new user
+                                scope.launch {
+                                    ThemePreferences.load(context) // Load settings for the new user
+                                }
                                 homeViewModel.loadInitialData() // Reload data for the new user
                                 navController.navigate("home") {
                                     popUpTo("auth") { inclusive = true }
@@ -344,10 +348,11 @@ private fun CustomBottomNavItem(
     onClick: () -> Unit
 ) {
     val contentColor = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = Modifier
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = null, 
                 onClick = onClick
             )
