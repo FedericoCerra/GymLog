@@ -56,16 +56,30 @@ fun MuscleDistributionContent(history: List<FinishedWorkout>) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.PieChart, null, tint = primaryColor, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("MUSCLE DISTRIBUTION", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    "MUSCLE DISTRIBUTION", 
+                    fontSize = 10.sp, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
-            Text("LATEST 5 WEEKS", fontSize = 9.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text(
+                "LATEST 5 WEEKS", 
+                fontSize = 9.sp, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), 
+                fontWeight = FontWeight.Bold
+            )
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
         if (filteredHistory.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().height(180.dp), contentAlignment = Alignment.Center) {
-                Text("No data available for last 5 weeks", color = Color.DarkGray, fontSize = 12.sp)
+                Text(
+                    "No data available for last 5 weeks", 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), 
+                    fontSize = 12.sp
+                )
             }
         } else {
             SpiderGraph(
@@ -87,13 +101,16 @@ fun SpiderGraph(
 ) {
     val textMeasurer = rememberTextMeasurer()
     val maxValue = (values.maxOrNull() ?: 1f).coerceAtLeast(1f)
-    
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+
     Canvas(modifier = modifier) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2.4f 
         val numAxes = labels.size
         val angleStep = (2 * PI / numAxes).toFloat()
         
+        // Background Webs
         val levels = 4
         for (i in levels downTo 1) {
             val levelRadius = radius * (i.toFloat() / levels)
@@ -108,29 +125,45 @@ fun SpiderGraph(
             
             drawPath(
                 path = path,
-                color = Color.White.copy(alpha = 0.03f * i),
+                color = onSurfaceColor.copy(alpha = 0.02f * i),
                 style = Fill
             )
             drawPath(
                 path = path,
-                color = Color.White.copy(alpha = 0.1f),
+                color = onSurfaceColor.copy(alpha = 0.08f),
                 style = Stroke(width = 1.dp.toPx())
             )
         }
         
+        // Axes lines
         for (i in 0 until numAxes) {
             val angle = i * angleStep - PI.toFloat() / 2
             val x = center.x + radius * cos(angle)
             val y = center.y + radius * sin(angle)
-            drawLine(Color.White.copy(alpha = 0.1f), center, Offset(x, y), strokeWidth = 1.dp.toPx())
+            drawLine(
+                onSurfaceColor.copy(alpha = 0.08f), 
+                center, 
+                Offset(x, y), 
+                strokeWidth = 1.dp.toPx()
+            )
         }
 
+        // Data Polygon
         if (values.any { it > 0 }) {
             val dataPoints = mutableListOf<Offset>()
             val dataPath = Path()
+            
             for (i in 0 until numAxes) {
                 val angle = i * angleStep - PI.toFloat() / 2
-                val normalizedValue = values[i] / maxValue
+                
+                // If value is 0, use a small 'base' radius (0.05) so it doesn't just pull to the center point.
+                // This ensures the polygon always has some area and the fill is visible.
+                val normalizedValue = if (values[i] > 0) {
+                    (values[i] / maxValue).coerceAtLeast(0.15f)
+                } else {
+                    0.05f 
+                }
+                
                 val valueRadius = radius * normalizedValue
                 val point = Offset(center.x + valueRadius * cos(angle), center.y + valueRadius * sin(angle))
                 dataPoints.add(point)
@@ -139,7 +172,7 @@ fun SpiderGraph(
             dataPath.close()
             
             val brush = Brush.radialGradient(
-                colors = listOf(primaryColor.copy(alpha = 0.4f), primaryColor.copy(alpha = 0.1f)),
+                colors = listOf(primaryColor.copy(alpha = 0.5f), primaryColor.copy(alpha = 0.15f)),
                 center = center,
                 radius = radius
             )
@@ -156,12 +189,13 @@ fun SpiderGraph(
             
             dataPoints.forEachIndexed { i, point ->
                 if (values[i] > 0) {
-                    drawCircle(Color.Black, radius = 4.dp.toPx(), center = point)
+                    drawCircle(onSurfaceColor, radius = 4.dp.toPx(), center = point)
                     drawCircle(primaryColor, radius = 2.5.dp.toPx(), center = point)
                 }
             }
         }
 
+        // Labels
         for (i in 0 until numAxes) {
             val angle = i * angleStep - PI.toFloat() / 2
             val labelRadius = radius + 18.dp.toPx()
@@ -171,7 +205,7 @@ fun SpiderGraph(
             val textLayoutResult = textMeasurer.measure(
                 text = labels[i],
                 style = TextStyle(
-                    color = Color.LightGray, 
+                    color = onSurfaceVariantColor,
                     fontSize = 8.sp, 
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.5.sp

@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -113,8 +114,8 @@ fun SetRow(
                 val typeColor = when(localSetType) {
                     SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
                     SetType.WARMUP -> Color(0xFFFFB300)
-                    SetType.DROP -> Color(0xFF9C27B0)
-                    SetType.FAILURE -> Color(0xFFE53935)
+                    SetType.DROP -> Color(0xFFAF52DE)
+                    SetType.FAILURE -> MaterialTheme.colorScheme.error
                 }
 
                 Text(
@@ -126,38 +127,36 @@ fun SetRow(
                 )
             }
             
-            MaterialTheme(
-                colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
-                shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
+            DropdownMenu(
+                expanded = showMenu, 
+                onDismissRequest = { showMenu = false },
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
             ) {
-                DropdownMenu(
-                    expanded = showMenu, 
-                    onDismissRequest = { showMenu = false },
-                    modifier = Modifier.background(Color(0xFF1C1C1E)).border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                ) {
-                    SetType.entries.forEach { type ->
-                        DropdownMenuItem(
-                            text = { 
-                                Text(
-                                    text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    color = if (localSetType == type) MaterialTheme.colorScheme.primary else Color.White,
-                                    fontWeight = if (localSetType == type) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            onClick = {
-                                localSetType = type
-                                set.type = type
-                                onValueChange()
-                                showMenu = false
-                            }
-                        )
-                    }
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                SetType.entries.forEach { type ->
                     DropdownMenuItem(
-                        text = { Text("Delete Set", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
-                        onClick = { onDelete(); showMenu = false }
+                        text = { 
+                            Text(
+                                text = type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                color = if (localSetType == type) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (localSetType == type) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        onClick = {
+                            localSetType = type
+                            set.type = type
+                            onValueChange()
+                            showMenu = false
+                        }
                     )
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                DropdownMenuItem(
+                    text = { Text("Delete Set", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                    onClick = { onDelete(); showMenu = false }
+                )
             }
         }
 

@@ -11,12 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.learningkotlin.model.FinishedWorkout
+import com.example.learningkotlin.ui.theme.HevyGreen
 import java.util.*
 
 @Composable
@@ -63,11 +63,11 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.CheckCircle, null, tint = HevyGreen, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("CONSISTENCY", fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.ExtraBold)
+                Text("CONSISTENCY", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.ExtraBold)
             }
-            Text("LATEST 5 WEEKS", fontSize = 9.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+            Text("LATEST 5 WEEKS", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
         }
         
         Spacer(modifier = Modifier.height(10.dp))
@@ -79,7 +79,7 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
                     text = day,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    color = Color.DarkGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -100,7 +100,7 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
                         1 -> "1W AGO"
                         else -> "${weekOffset}W AGO"
                     },
-                    color = Color.DarkGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.width(70.dp)
@@ -118,9 +118,9 @@ fun ConsistencyHeatmapContent(history: List<FinishedWorkout>) {
                             .height(26.dp)
                             .padding(horizontal = 3.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (hasWorkout) primaryColor else Color(0xFF2C2C2E))
+                            .background(if (hasWorkout) primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                             .let { 
-                                if (isToday) it.border(1.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                if (isToday) it.border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
                                 else it
                             }
                     )

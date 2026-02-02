@@ -9,11 +9,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +39,7 @@ fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>, pri
         Text(
             text = "MUSCLE DISTRIBUTION",
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -50,8 +50,8 @@ fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>, pri
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = muscle, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    Text(text = "${(percentage * 100).toInt()}%", color = Color.Gray, fontSize = 13.sp)
+                    Text(text = muscle, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(text = "${(percentage * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Box(
@@ -59,7 +59,7 @@ fun MuscleDistributionSection(muscleDistribution: List<Pair<String, Float>>, pri
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF1C1C1E))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(
                         modifier = Modifier
@@ -91,7 +91,7 @@ fun StatItem(
             Text(
                 text = label.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
             if (isEditable) {
@@ -103,7 +103,7 @@ fun StatItem(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -132,7 +132,7 @@ fun RecapExerciseItem(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable { onExerciseClick() },
                 contentAlignment = Alignment.Center
             ) {
@@ -142,10 +142,10 @@ fun RecapExerciseItem(
                     AsyncImage(
                         model = coilModel, 
                         contentDescription = null, 
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize().clip(CircleShape)
                     )
                 } else {
-                    Icon(Icons.Default.FitnessCenter, null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.FitnessCenter, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -166,7 +166,7 @@ fun RecapExerciseItem(
                         onUpdate()
                     },
                     textStyle = TextStyle(
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         fontStyle = FontStyle.Italic
                     ),
@@ -176,7 +176,7 @@ fun RecapExerciseItem(
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         if (localNotes.isEmpty()) {
-                            Text("Add notes...", color = Color.DarkGray, fontSize = 13.sp, fontStyle = FontStyle.Italic)
+                            Text("Add notes...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 13.sp, fontStyle = FontStyle.Italic)
                         }
                         innerTextField()
                     }
@@ -185,8 +185,8 @@ fun RecapExerciseItem(
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            Text(text = "SET", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-            Text(text = "WEIGHT & REPS", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(text = "SET", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+            Text(text = "WEIGHT & REPS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(8.dp))
         exercise.sets.forEachIndexed { index, set ->
@@ -195,7 +195,7 @@ fun RecapExerciseItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(4.dp))
-                    .background(if (isEven) Color.Transparent else Color(0xFF1C1C1E))
+                    .background(if (isEven) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     .padding(vertical = 12.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -206,10 +206,10 @@ fun RecapExerciseItem(
                     SetType.FAILURE -> "F"
                 }
                 val typeColor = when(set.type) {
-                    SetType.NORMAL -> Color.White
+                    SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
                     SetType.WARMUP -> Color(0xFFFFB300)
-                    SetType.DROP -> Color(0xFF9C27B0)
-                    SetType.FAILURE -> Color(0xFFE53935)
+                    SetType.DROP -> Color(0xFFAF52DE)
+                    SetType.FAILURE -> MaterialTheme.colorScheme.error
                 }
 
                 Text(
@@ -223,14 +223,14 @@ fun RecapExerciseItem(
                 
                 val weightStr = set.weight.toString().removeSuffix(".0")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "$weightStr kg x ${set.reps}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(text = "$weightStr kg x ${set.reps}", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     
                     if (set.isWeightPR || set.is1RMPR || set.isVolumePR) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (set.isWeightPR) Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(14.dp))
                             if (set.is1RMPR) Icon(Icons.Default.ElectricBolt, null, tint = Color(0xFF00E5FF), modifier = Modifier.size(14.dp).padding(start = if (set.isWeightPR) 2.dp else 0.dp))
-                            if (set.isVolumePR) Icon(Icons.Default.TrendingUp, null, tint = Color(0xFF76FF03), modifier = Modifier.size(14.dp).padding(start = if (set.isWeightPR || set.is1RMPR) 2.dp else 0.dp))
+                            if (set.isVolumePR) Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = Color(0xFF76FF03), modifier = Modifier.size(14.dp).padding(start = if (set.isWeightPR || set.is1RMPR) 2.dp else 0.dp))
 
                             Spacer(modifier = Modifier.width(4.dp))
                             val prLabels = mutableListOf<String>()
