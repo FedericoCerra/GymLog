@@ -1,24 +1,32 @@
 package com.example.learningkotlin.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -32,6 +40,7 @@ import com.example.learningkotlin.model.WorkoutSet
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.*
 import com.example.learningkotlin.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 data class PREvent(
     val title: String,
@@ -99,16 +108,25 @@ fun WorkoutDetailScreen(
         return "%.1f %s".format(value, weightUnit).removeSuffix(".0 $weightUnit")
     }
 
-    val workoutExercises = remember(refreshTrigger) { workout.exercises.toList() }
+    // Use a mutableStateList for easy reordering and immediate UI updates
+    val exercises = remember(workout.id) { 
+        mutableStateListOf<Exercise>().apply { addAll(workout.exercises) } 
+    }
 
-    val totalSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.size } }
-    val completedSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.count { s -> s.isDone } } }
+    val totalSets = remember(exercises.size, refreshTrigger) { exercises.sumOf { it.sets.size } }
+    val completedSets = remember(exercises.size, refreshTrigger) { exercises.sumOf { it.sets.count { s -> s.isDone } } }
     
-    val totalVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
-    val completedVolume = remember(workoutExercises) { workoutExercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
+    val totalVolume = remember(exercises.size, refreshTrigger) { exercises.sumOf { it.sets.sumOf { s -> s.weight * s.reps } } }
+    val completedVolume = remember(exercises.size, refreshTrigger) { exercises.sumOf { it.sets.filter { s -> s.isDone }.sumOf { s -> s.weight * s.reps } } }
     
-    val totalRestSeconds = remember(workoutExercises) { workoutExercises.sumOf { it.restTimer * it.sets.size } }
+    val totalRestSeconds = remember(exercises.size, refreshTrigger) { exercises.sumOf { it.restTimer * it.sets.size } }
     val estTimeSeconds = remember(totalRestSeconds, totalSets) { totalRestSeconds + (totalSets * 120) }
+
+    // State for drag and drop
+    var draggedItemId by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { (72.dp + 12.dp).toPx() } // Compact card height + spacing
 
     Scaffold(
         topBar = {
@@ -146,10 +164,11 @@ fun WorkoutDetailScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier.padding(innerPadding).fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(if (draggedItemId != null) 12.dp else 24.dp)
             ) {
                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
                     WorkoutHeaderStats(
                         mainTimerLabel = if (workout.isActive) "Duration" else "Est. Time",
                         mainTimerValue = if (workout.isActive) formatDuration(workoutDurationSeconds) else formatDuration(estTimeSeconds.toLong()),
@@ -160,57 +179,112 @@ fun WorkoutDetailScreen(
                     )
                 }
 
-                items(workoutExercises, key = { it.id }) { exercise ->
-                    val previousSets = remember(exercise.name, viewModel.history) {
-                        viewModel.getPreviousSetsForExercise(exercise.name)
+                itemsIndexed(exercises, key = { _, exercise -> exercise.id }) { _, exercise ->
+                    val isDragging = draggedItemId == exercise.id
+                    val elevation by animateDpAsState(if (isDragging) 12.dp else 0.dp)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(if (isDragging) 1f else 0f)
+                            .offset { 
+                                if (isDragging) IntOffset(0, dragOffsetY.roundToInt()) 
+                                else IntOffset.Zero 
+                            }
+                            .shadow(elevation, RoundedCornerShape(12.dp))
+                            .pointerInput(Unit) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = { 
+                                        draggedItemId = exercise.id
+                                        dragOffsetY = 0f
+                                    },
+                                    onDragEnd = { 
+                                        draggedItemId = null
+                                        dragOffsetY = 0f
+                                        workout.exercises.clear()
+                                        workout.exercises.addAll(exercises)
+                                    },
+                                    onDragCancel = { 
+                                        draggedItemId = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffsetY += dragAmount.y
+                                        
+                                        val currentIndex = exercises.indexOfFirst { it.id == draggedItemId }
+                                        if (currentIndex != -1) {
+                                            if (dragOffsetY > itemHeightPx / 2 && currentIndex < exercises.size - 1) {
+                                                exercises.add(currentIndex + 1, exercises.removeAt(currentIndex))
+                                                dragOffsetY -= itemHeightPx
+                                            }
+                                            else if (dragOffsetY < -itemHeightPx / 2 && currentIndex > 0) {
+                                                exercises.add(currentIndex - 1, exercises.removeAt(currentIndex))
+                                                dragOffsetY += itemHeightPx
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                    ) {
+                        if (draggedItemId != null) {
+                            CompactExerciseCard(exercise = exercise, isHighlighted = isDragging)
+                        } else {
+                            val previousSets = remember(exercise.name, viewModel.history) {
+                                viewModel.getPreviousSetsForExercise(exercise.name)
+                            }
+                            val personalBests = remember(exercise.name, viewModel.history) {
+                                viewModel.getPersonalBests(exercise.name)
+                            }
+                            
+                            ExerciseCard(
+                                exercise = exercise,
+                                isWorkoutActive = workout.isActive,
+                                onUpdate = { refreshTrigger++ },
+                                onRemove = { 
+                                    exercises.remove(exercise)
+                                    workout.exercises.remove(exercise)
+                                    refreshTrigger++ 
+                                },
+                                onReplace = {
+                                    exerciseToReplace = exercise
+                                    showSelectExerciseDialog = true
+                                },
+                                onStartTimer = { duration -> viewModel.onSetChecked(duration) },
+                                onInfoClick = {
+                                    val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
+                                    if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
+                                },
+                                onExerciseClick = { onExerciseClick(exercise.name) },
+                                onPRDetected = { title, desc, img ->
+                                    currentPR = PREvent(title, desc, img)
+                                },
+                                previousSets = previousSets,
+                                personalBests = personalBests
+                            )
+                        }
                     }
-                    val personalBests = remember(exercise.name, viewModel.history) {
-                        viewModel.getPersonalBests(exercise.name)
-                    }
-                    
-                    ExerciseCard(
-                        exercise = exercise,
-                        isWorkoutActive = workout.isActive,
-                        onUpdate = { refreshTrigger++ },
-                        onRemove = { 
-                            workout.exercises.remove(exercise)
-                            refreshTrigger++ 
-                        },
-                        onReplace = {
-                            exerciseToReplace = exercise
-                            showSelectExerciseDialog = true
-                        },
-                        onStartTimer = { duration -> viewModel.onSetChecked(duration) },
-                        onInfoClick = {
-                            val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
-                            if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
-                        },
-                        onExerciseClick = { onExerciseClick(exercise.name) },
-                        onPRDetected = { title, desc, img ->
-                            currentPR = PREvent(title, desc, img)
-                        },
-                        previousSets = previousSets,
-                        personalBests = personalBests
-                    )
                 }
 
                 item {
-                    Button(
-                        onClick = { 
-                            exerciseToReplace = null
-                            showSelectExerciseDialog = true 
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(Icons.Default.Add, "Add")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add Exercise")
+                    if (draggedItemId == null) {
+                        Button(
+                            onClick = { 
+                                exerciseToReplace = null
+                                showSelectExerciseDialog = true 
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Add, "Add")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Add Exercise")
+                        }
                     }
                 }
                 item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -333,21 +407,21 @@ fun WorkoutDetailScreen(
                                 }
                             }
                         } else {
-                            val newId = (workout.exercises.maxOfOrNull { it.id } ?: 0) + 1
+                            val newId = (exercises.maxOfOrNull { it.id } ?: 0) + 1
                             val historicalSets = viewModel.getPreviousSetsForExercise(def.name)
                             val initialWeight = historicalSets.firstOrNull()?.weight ?: 0.0
                             val initialReps = historicalSets.firstOrNull()?.reps ?: 0
 
-                            workout.exercises.add(
-                                Exercise(
-                                    id = newId, 
-                                    name = def.name, 
-                                    sets = mutableListOf(WorkoutSet(1, initialWeight, initialReps, false)),
-                                    restTimer = 90,
-                                    imagePath = if (def.images.isNotEmpty()) def.images[0] else null,
-                                    primaryMuscles = def.primaryMuscles
-                                )
+                            val newExercise = Exercise(
+                                id = newId, 
+                                name = def.name, 
+                                sets = mutableListOf(WorkoutSet(1, initialWeight, initialReps, false)),
+                                restTimer = 90,
+                                imagePath = if (def.images.isNotEmpty()) def.images[0] else null,
+                                primaryMuscles = def.primaryMuscles
                             )
+                            exercises.add(newExercise)
+                            workout.exercises.add(newExercise)
                         }
                         refreshTrigger++
                         showSelectExerciseDialog = false
@@ -363,6 +437,58 @@ fun WorkoutDetailScreen(
                     onDismiss = { showInstructionsDialog = false }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun CompactExerciseCard(exercise: Exercise, isHighlighted: Boolean) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .then(
+                if (isHighlighted) {
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                } else Modifier
+            )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.2f))
+            ) {
+                if (exercise.imagePath != null) {
+                    AsyncImage(
+                        model = "file:///android_asset/exercises/${exercise.imagePath}",
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = exercise.name,
+                color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.DragHandle, 
+                contentDescription = null, 
+                tint = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
