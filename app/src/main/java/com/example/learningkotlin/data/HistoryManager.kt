@@ -23,7 +23,7 @@ object HistoryManager {
         encodeDefaults = true
     }
 
-    private val db = FirebaseFirestore.getInstance()
+    private val db get() = FirebaseFirestore.getInstance()
 
     private fun getFileName(): String {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "default"
@@ -60,7 +60,7 @@ object HistoryManager {
         try {
             val file = File(context.filesDir, getFileName())
             file.writeText(jsonString)
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (_: Exception) { }
 
         // 2. Save to Firebase
         val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -73,7 +73,7 @@ object HistoryManager {
                 db.collection("users").document(userId)
                     .collection("data").document("history")
                     .set(dataMap)
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (_: Exception) { }
         }
     }
 
@@ -92,7 +92,7 @@ object HistoryManager {
                     val oldList = json.decodeFromString<List<FinishedWorkout>>(content)
                     HistorySyncWrapper(0, oldList)
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (_: Exception) { }
         }
 
         // 2. Sync with Firebase
@@ -107,7 +107,8 @@ object HistoryManager {
                 val remoteJson = document.getString("historyJson")
 
                 if (remoteJson != null) {
-                    val remoteWrapper = HistorySyncWrapper(remoteTimestamp, json.decodeFromString(remoteJson))
+                    val remoteWorkouts = json.decodeFromString<List<FinishedWorkout>>(remoteJson)
+                    val remoteWrapper = HistorySyncWrapper(remoteTimestamp, remoteWorkouts)
                     val localTimestamp = localWrapper?.lastUpdated ?: -1L
 
                     if (remoteTimestamp > localTimestamp) {
@@ -125,7 +126,7 @@ object HistoryManager {
             } else if (localWrapper != null) {
                 saveHistoryInternal(context, localWrapper.workouts)
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (_: Exception) { }
 
         return localWrapper?.workouts ?: emptyList()
     }

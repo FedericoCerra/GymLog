@@ -261,14 +261,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         try {
             val mediaPlayer = MediaPlayer.create(context, R.raw.bell_notification)
             mediaPlayer.setVolume(0.4f, 0.4f)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mediaPlayer.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-            }
+            mediaPlayer.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
             mediaPlayer.setOnCompletionListener { it.release() }
             mediaPlayer.start()
         } catch (e: Exception) {

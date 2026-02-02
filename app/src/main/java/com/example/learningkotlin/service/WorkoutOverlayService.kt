@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.*
-import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -128,6 +127,7 @@ class WorkoutOverlayService : Service() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                     WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 else
+                    @Suppress("DEPRECATION")
                     WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
@@ -187,9 +187,7 @@ class WorkoutOverlayService : Service() {
 
             try {
                 windowManager.addView(composeView, params)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Failed to add overlay: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+            } catch (_: Exception) { }
         }
 
         return START_NOT_STICKY

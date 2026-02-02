@@ -15,7 +15,7 @@ object ThemePreferences {
         return "theme_prefs_$userId"
     }
 
-    private val db = FirebaseFirestore.getInstance()
+    private val db get() = FirebaseFirestore.getInstance()
 
     private const val KEY_PRIMARY_COLOR = "primary_color"
     private const val KEY_WEIGHT_UNIT = "weight_unit"
@@ -46,7 +46,7 @@ object ThemePreferences {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         
-        var localTime = prefs.getLong(KEY_LAST_UPDATED, 0L)
+        val localTime = prefs.getLong(KEY_LAST_UPDATED, 0L)
 
         if (userId != null) {
             try {
@@ -75,8 +75,7 @@ object ThemePreferences {
                             putBoolean(KEY_SHOW_WORKOUT_NOTIFICATION, notification)
                             putLong(KEY_LAST_UPDATED, remoteTime)
                         }
-                        localTime = remoteTime
-                    } else if (localTime >= remoteTime) {
+                    } else {
                         // Local is newer or same, push to remote (ensures email is set)
                         saveToFirestore(context)
                     }
@@ -84,7 +83,7 @@ object ThemePreferences {
                     // No remote data, push local
                     saveToFirestore(context)
                 }
-            } catch (e: Exception) { }
+            } catch (_: Exception) { }
         }
 
         // Apply values to state
@@ -127,7 +126,7 @@ object ThemePreferences {
 
     fun saveColor(context: Context, color: Color) {
         primaryColor.value = color
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putInt(KEY_PRIMARY_COLOR, color.toArgb()) }
         saveToFirestore(context)
@@ -135,7 +134,7 @@ object ThemePreferences {
 
     fun saveWeightUnit(context: Context, unit: String) {
         weightUnit.value = unit
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putString(KEY_WEIGHT_UNIT, unit) }
         saveToFirestore(context)
@@ -143,7 +142,7 @@ object ThemePreferences {
 
     fun saveAutoRestTimer(context: Context, enabled: Boolean) {
         autoRestTimer.value = enabled
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_AUTO_REST_TIMER, enabled) }
         saveToFirestore(context)
@@ -151,7 +150,7 @@ object ThemePreferences {
 
     fun saveTimerSound(context: Context, enabled: Boolean) {
         timerSound.value = enabled
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_TIMER_SOUND, enabled) }
         saveToFirestore(context)
@@ -159,7 +158,7 @@ object ThemePreferences {
 
     fun saveShowOverlayBubble(context: Context, enabled: Boolean) {
         showOverlayBubble.value = enabled
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_SHOW_OVERLAY_BUBBLE, enabled) }
         saveToFirestore(context)
@@ -167,7 +166,7 @@ object ThemePreferences {
 
     fun saveShowWorkoutNotification(context: Context, enabled: Boolean) {
         showWorkoutNotification.value = enabled
-        val time = updateLocalTime(context)
+        updateLocalTime(context)
         val prefs = context.getSharedPreferences(getPrefsName(), Context.MODE_PRIVATE)
         prefs.edit { putBoolean(KEY_SHOW_WORKOUT_NOTIFICATION, enabled) }
         saveToFirestore(context)
@@ -182,6 +181,4 @@ object ThemePreferences {
             "%.1f".format(value)
         }
     }
-
-    fun getWeightSuffix(): String = weightUnit.value
 }

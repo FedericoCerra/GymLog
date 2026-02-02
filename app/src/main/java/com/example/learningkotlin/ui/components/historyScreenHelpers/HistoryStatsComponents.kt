@@ -25,13 +25,7 @@ import com.example.learningkotlin.model.FinishedWorkout
 import java.text.SimpleDateFormat
 import java.util.*
 
-@Composable
-fun HistoryDashboard(history: List<FinishedWorkout>) {
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        HistorySummaryStats(history)
-        WeeklyStatsPager(history)
-    }
-}
+
 
 @Composable
 fun HistorySummaryStats(history: List<FinishedWorkout>) {

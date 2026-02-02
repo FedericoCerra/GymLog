@@ -3,7 +3,6 @@ package com.example.learningkotlin
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -15,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.example.learningkotlin.data.ThemePreferences
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
+    ) { _: Boolean ->
         // Permission handled
     }
 
@@ -79,18 +79,16 @@ class MainActivity : ComponentActivity() {
     }
 
     fun checkOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + packageName) // Correct Uri construction
-                )
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    // Fallback to general settings if package specific fails
-                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
-                }
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                "package:$packageName".toUri()
+            )
+            try {
+                startActivity(intent)
+            } catch (_: Exception) {
+                // Fallback to general settings if package specific fails
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
             }
         }
     }

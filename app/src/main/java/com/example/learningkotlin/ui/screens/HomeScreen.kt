@@ -70,7 +70,7 @@ fun HomeScreen(
             }
 
             // 1. YOUR ROUTINES LIST
-            items(workouts) { workout ->
+            items(workouts, key = { it.id }) { workout ->
                 WorkoutListItem(
                     workout = workout,
                     onClick = { onWorkoutClick(workout) },

@@ -125,7 +125,7 @@ fun SetRow(
                     onDismissRequest = { showMenu = false },
                     modifier = Modifier.background(Color(0xFF1C1C1E)).border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                 ) {
-                    SetType.values().forEach { type ->
+                    SetType.entries.forEach { type ->
                         DropdownMenuItem(
                             text = { 
                                 Text(
