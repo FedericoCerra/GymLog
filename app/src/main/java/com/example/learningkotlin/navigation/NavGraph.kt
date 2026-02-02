@@ -79,7 +79,8 @@ fun NavGraph(
         
         // Hide bubble if viewing active workout OR in settings screens
         val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings" || 
-                             currentRoute == "help_support" || currentRoute == "about_app"
+                             currentRoute == "help_support" || currentRoute == "about_app" ||
+                             currentRoute?.startsWith("exercise_history/") == true
         
         WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
     }
@@ -97,7 +98,8 @@ fun NavGraph(
                 val isViewingActiveWorkout = currentRoute?.startsWith("detail/") == true && 
                                            workoutIdInRoute == activeWorkoutId
                 val isSettingsScreen = currentRoute == "profile" || currentRoute == "app_settings" || 
-                                     currentRoute == "help_support" || currentRoute == "about_app"
+                                     currentRoute == "help_support" || currentRoute == "about_app" ||
+                                     currentRoute?.startsWith("exercise_history/") == true
                 
                 WorkoutOverlayService.setVisibility(!isViewingActiveWorkout && !isSettingsScreen)
             }
@@ -236,9 +238,24 @@ fun NavGraph(
                                 onBackClick = {
                                     homeViewModel.onDetailScreenExit()
                                     navController.popBackStack()
+                                },
+                                onExerciseClick = { name ->
+                                    navController.navigate("exercise_history/$name")
                                 }
                             )
                         }
+                    }
+
+                    composable(
+                        route = "exercise_history/{exerciseName}",
+                        arguments = listOf(navArgument("exerciseName") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("exerciseName") ?: ""
+                        ExerciseHistoryScreen(
+                            exerciseName = name,
+                            viewModel = homeViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
 
                     composable("recap") {

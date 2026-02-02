@@ -37,8 +37,10 @@ fun ExerciseCard(
     onReplace: () -> Unit,
     onStartTimer: (Int) -> Unit,
     onInfoClick: () -> Unit,
+    onPRDetected: (String, String, String?) -> Unit = { _, _, _ -> },
     previousSets: List<WorkoutSet> = emptyList(),
-    personalBests: ExercisePersonalBests = ExercisePersonalBests()
+    personalBests: ExercisePersonalBests = ExercisePersonalBests(),
+    onExerciseClick: () -> Unit
 ) {
     var localRefreshTrigger by remember { mutableIntStateOf(0) }
     var showWarmupConfig by remember { mutableStateOf(false) }
@@ -66,6 +68,7 @@ fun ExerciseCard(
                     },
                     onManualTimerStart = { duration -> onStartTimer(duration) },
                     onInfoClick = onInfoClick,
+                    onExerciseClick = onExerciseClick,
                     onNotesChange = { newNotes ->
                         exercise.notes = newNotes
                     },
@@ -122,7 +125,20 @@ fun ExerciseCard(
                 }
             }
 
-            val currentSets = remember(localRefreshTrigger) { exercise.sets.toList() }
+            val currentSets = remember(localRefreshTrigger, exercise.sets.size) { exercise.sets.toList() }
+            
+            // Find indices of the BEST sets in current workout session to ensure the badge ONLY shows on the LATEST one
+            val doneSets = currentSets.filter { it.isDone }
+            
+            val bestWeight = doneSets.maxOfOrNull { it.weight } ?: -1.0
+            val lastBestWeightId = doneSets.findLast { it.weight == bestWeight }?.id ?: -1
+            
+            val best1RM = doneSets.maxOfOrNull { it.calculate1RM() } ?: -1.0
+            val lastBest1RMId = doneSets.findLast { it.calculate1RM() == best1RM }?.id ?: -1
+            
+            val bestVolume = doneSets.maxOfOrNull { it.calculateVolume() } ?: -1.0
+            val lastBestVolumeId = doneSets.findLast { it.calculateVolume() == bestVolume }?.id ?: -1
+
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 currentSets.forEachIndexed { index, set ->
                     val prevSet = previousSets.getOrNull(index)
@@ -137,10 +153,15 @@ fun ExerciseCard(
                                 onUpdate()
                             },
                             onCheck = { isChecked ->
+                                localRefreshTrigger++
                                 onUpdate() 
                                 if (isChecked) onStartTimer(exercise.restTimer)
                             },
                             onValueChange = { onUpdate() },
+                            onPRDetected = { title, desc -> onPRDetected(title, desc, exercise.imagePath) },
+                            isBestWeightInWorkout = set.isDone && set.id == lastBestWeightId && bestWeight > 0,
+                            isBest1RMInWorkout = set.isDone && set.id == lastBest1RMId && best1RM > 0,
+                            isBestVolumeInWorkout = set.isDone && set.id == lastBestVolumeId && bestVolume > 0,
                             previousWeight = prevSet?.weight,
                             previousReps = prevSet?.reps,
                             personalBests = personalBests

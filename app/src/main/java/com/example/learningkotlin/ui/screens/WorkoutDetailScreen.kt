@@ -1,19 +1,28 @@
 package com.example.learningkotlin.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import coil.compose.AsyncImage
 import com.example.learningkotlin.data.ExerciseLibrary
 import com.example.learningkotlin.data.ThemePreferences
 import com.example.learningkotlin.model.Exercise
@@ -23,6 +32,13 @@ import com.example.learningkotlin.model.WorkoutSet
 import com.example.learningkotlin.ui.components.workoutDetailScreenHelpers.*
 import com.example.learningkotlin.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
+
+data class PREvent(
+    val title: String,
+    val description: String,
+    val imagePath: String?,
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +50,7 @@ fun WorkoutDetailScreen(
     onFinishWorkout: () -> Unit,
     onDiscardWorkout: () -> Unit,
     onBackClick: () -> Unit,
+    onExerciseClick: (String) -> Unit,
 ) {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     var showSelectExerciseDialog by remember { mutableStateOf(false) }
@@ -41,6 +58,9 @@ fun WorkoutDetailScreen(
     var showInstructionsDialog by remember { mutableStateOf(false) }
     var exerciseForInstructions by remember { mutableStateOf<ExerciseDefinition?>(null) }
     var showFinishConfirmationDialog by remember { mutableStateOf(false) }
+
+    var currentPR by remember { mutableStateOf<PREvent?>(null) }
+    var isPRCardExpanded by remember { mutableStateOf(false) }
 
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
     val weightUnit = ThemePreferences.weightUnit.value
@@ -51,6 +71,19 @@ fun WorkoutDetailScreen(
             val start = workout.startTime ?: now
             workoutDurationSeconds = (now - start) / 1000
             delay(1000L)
+        }
+    }
+
+    LaunchedEffect(currentPR) {
+        val event = currentPR ?: return@LaunchedEffect
+        isPRCardExpanded = false
+        delay(600) // Slide down as circle
+        isPRCardExpanded = true
+        delay(3000)
+        isPRCardExpanded = false
+        delay(600) // Shrink back to circle
+        if (currentPR == event) {
+            currentPR = null
         }
     }
 
@@ -66,7 +99,6 @@ fun WorkoutDetailScreen(
         return "%.1f %s".format(value, weightUnit).removeSuffix(".0 $weightUnit")
     }
 
-    // Force a new list instance on every refresh to ensure LazyColumn detects changes
     val workoutExercises = remember(refreshTrigger) { workout.exercises.toList() }
 
     val totalSets = remember(workoutExercises) { workoutExercises.sumOf { it.sets.size } }
@@ -153,6 +185,10 @@ fun WorkoutDetailScreen(
                             val def = ExerciseLibrary.getDefinitions().find { it.name == exercise.name }
                             if (def != null) { exerciseForInstructions = def; showInstructionsDialog = true }
                         },
+                        onExerciseClick = { onExerciseClick(exercise.name) },
+                        onPRDetected = { title, desc, img ->
+                            currentPR = PREvent(title, desc, img)
+                        },
                         previousSets = previousSets,
                         personalBests = personalBests
                     )
@@ -178,6 +214,73 @@ fun WorkoutDetailScreen(
                     }
                 }
                 item { Spacer(modifier = Modifier.height(100.dp)) }
+            }
+
+            // Animated PR Notification Popup
+            AnimatedVisibility(
+                visible = currentPR != null,
+                enter = slideInVertically(initialOffsetY = { -it * 2 }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it * 2 }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(100f)
+                    .padding(top = innerPadding.calculateTopPadding() + 16.dp, start = 16.dp, end = 16.dp)
+            ) {
+                currentPR?.let { pr ->
+                    Card(
+                        modifier = Modifier
+                            .height(80.dp)
+                            .wrapContentWidth()
+                            .animateContentSize(),
+                        shape = RoundedCornerShape(40.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Circular image
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black)
+                            ) {
+                                if (pr.imagePath != null) {
+                                    AsyncImage(
+                                        model = "file:///android_asset/exercises/${pr.imagePath}",
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                            
+                            // Expanding Text Content
+                            AnimatedVisibility(
+                                visible = isPRCardExpanded,
+                                enter = expandHorizontally() + fadeIn(),
+                                exit = shrinkHorizontally() + fadeOut()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.WorkspacePremium, null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(text = pr.title, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                        Text(text = pr.description, color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp, maxLines = 1)
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (showFinishConfirmationDialog) {

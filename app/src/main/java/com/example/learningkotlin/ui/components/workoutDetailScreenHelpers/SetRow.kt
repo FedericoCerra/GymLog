@@ -1,8 +1,5 @@
 package com.example.learningkotlin.ui.components.workoutDetailScreenHelpers
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +10,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +38,10 @@ fun SetRow(
     onDelete: () -> Unit,
     onCheck: (Boolean) -> Unit,
     onValueChange: () -> Unit = {},
+    onPRDetected: (String, String) -> Unit = { _, _ -> },
+    isBestWeightInWorkout: Boolean = false,
+    isBest1RMInWorkout: Boolean = false,
+    isBestVolumeInWorkout: Boolean = false,
     previousWeight: Double? = null,
     previousReps: Int? = null,
     personalBests: ExercisePersonalBests = ExercisePersonalBests()
@@ -48,7 +49,6 @@ fun SetRow(
     val weightUnit = ThemePreferences.weightUnit.value
     val isLbs = weightUnit == "lbs"
 
-    // Helper to display weight correctly based on unit
     fun Double.toDisplay(): String = ThemePreferences.formatWeight(this)
     fun String.toKg(): Double {
         val d = this.toDoubleOrNull() ?: 0.0
@@ -66,21 +66,22 @@ fun SetRow(
     var showMenu by remember { mutableStateOf(false) }
     var localSetType by remember(set.type) { mutableStateOf(set.type) }
 
-    val isWeightPR = remember(set.weight, personalBests.maxWeight, isChecked) {
-        isChecked && set.weight > personalBests.maxWeight && personalBests.maxWeight > 0
-    }
-    val is1RMPR = remember(set.weight, set.reps, personalBests.max1RM, isChecked) {
-        isChecked && set.calculate1RM() > personalBests.max1RM && personalBests.max1RM > 0
-    }
-    val isVolumePR = remember(set.weight, set.reps, personalBests.maxVolume, isChecked) {
-        isChecked && set.calculateVolume() > personalBests.maxVolume && personalBests.maxVolume > 0
-    }
-    
-    set.isWeightPR = isWeightPR
-    set.is1RMPR = is1RMPR
-    set.isVolumePR = isVolumePR
+    // Logic for PR status relative to history
+    val isWeightHistoricalPR = set.weight > 0 && (personalBests.maxWeight == 0.0 || set.weight > personalBests.maxWeight)
+    val is1RMHistoricalPR = set.calculate1RM() > 0 && (personalBests.max1RM == 0.0 || set.calculate1RM() > personalBests.max1RM)
+    val isVolumeHistoricalPR = set.calculateVolume() > 0 && (personalBests.maxVolume == 0.0 || set.calculateVolume() > personalBests.maxVolume)
 
-    val hasAnyPR = isWeightPR || is1RMPR || isVolumePR
+    // A set gets a badge if it is a Historical PR AND it is the best currently done in this workout
+    val hasWeightBadge = isChecked && isBestWeightInWorkout && isWeightHistoricalPR
+    val has1RMBadge = isChecked && isBest1RMInWorkout && is1RMHistoricalPR
+    val hasVolumeBadge = isChecked && isBestVolumeInWorkout && isVolumeHistoricalPR
+    
+    set.isWeightPR = hasWeightBadge
+    set.is1RMPR = has1RMBadge
+    set.isVolumePR = hasVolumeBadge
+
+    val hasAnyBadge = hasWeightBadge || has1RMBadge || hasVolumeBadge
+
     val isDataValid = (set.weight > 0.0 && set.reps > 0)
     val rowColor = if (isChecked) Color(0xFF4CAF50).copy(alpha = 0.2f) else Color.Transparent
 
@@ -95,26 +96,35 @@ fun SetRow(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.Center
         ) {
-            val typeText = when(localSetType) {
-                SetType.NORMAL -> "$index"
-                SetType.WARMUP -> "W"
-                SetType.DROP -> "D"
-                SetType.FAILURE -> "F"
-            }
-            val typeColor = when(localSetType) {
-                SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
-                SetType.WARMUP -> Color(0xFFFFB300)
-                SetType.DROP -> Color(0xFF9C27B0)
-                SetType.FAILURE -> Color(0xFFE53935)
-            }
+            if (hasAnyBadge) {
+                Icon(
+                    imageVector = Icons.Default.WorkspacePremium,
+                    contentDescription = "PR",
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(24.dp).clickable { showMenu = true }
+                )
+            } else {
+                val typeText = when(localSetType) {
+                    SetType.NORMAL -> "$index"
+                    SetType.WARMUP -> "W"
+                    SetType.DROP -> "D"
+                    SetType.FAILURE -> "F"
+                }
+                val typeColor = when(localSetType) {
+                    SetType.NORMAL -> MaterialTheme.colorScheme.onSurface
+                    SetType.WARMUP -> Color(0xFFFFB300)
+                    SetType.DROP -> Color(0xFF9C27B0)
+                    SetType.FAILURE -> Color(0xFFE53935)
+                }
 
-            Text(
-                text = typeText,
-                fontWeight = FontWeight.Black,
-                color = typeColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().clickable { showMenu = true }
-            )
+                Text(
+                    text = typeText,
+                    fontWeight = FontWeight.Black,
+                    color = typeColor,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().clickable { showMenu = true }
+                )
+            }
             
             MaterialTheme(
                 colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
@@ -188,30 +198,36 @@ fun SetRow(
 
         if (isWorkoutActive) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AnimatedVisibility(visible = hasAnyPR, enter = fadeIn() + scaleIn()) {
-                        Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    }
-                    Surface(
-                        onClick = {
-                            if (isDataValid) {
-                                isChecked = !isChecked
-                                set.isDone = isChecked
-                                onCheck(isChecked)
+                Surface(
+                    onClick = {
+                        if (isDataValid) {
+                            val newChecked = !isChecked
+                            isChecked = newChecked
+                            set.isDone = newChecked
+                            
+                            if (newChecked) {
+                                // 1RM has priority for the popup
+                                when {
+                                    is1RMHistoricalPR -> onPRDetected("New 1RM PR!", "1RM: ${set.calculate1RM().toDisplay()} $weightUnit")
+                                    isWeightHistoricalPR -> onPRDetected("New Weight PR!", "${set.weight.toDisplay()} $weightUnit")
+                                    isVolumeHistoricalPR -> onPRDetected("New Volume PR!", "Volume: ${set.calculateVolume().toDisplay()} $weightUnit")
+                                }
                             }
-                        },
-                        shape = RoundedCornerShape(4.dp),
-                        color = when {
-                            isChecked -> Color(0xFF4CAF50)
-                            !isDataValid -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            else -> MaterialTheme.colorScheme.surfaceVariant
-                        },
-                        modifier = Modifier.size(28.dp),
-                        enabled = isDataValid || isChecked
-                    ) {
-                        if (isChecked) {
-                            Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
+                            
+                            onCheck(newChecked)
                         }
+                    },
+                    shape = RoundedCornerShape(4.dp),
+                    color = when {
+                        isChecked -> Color(0xFF4CAF50)
+                        !isDataValid -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    },
+                    modifier = Modifier.size(28.dp),
+                    enabled = isDataValid || isChecked
+                ) {
+                    if (isChecked) {
+                        Icon(Icons.Default.Check, "Done", tint = Color.White, modifier = Modifier.padding(4.dp))
                     }
                 }
             }

@@ -10,8 +10,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -215,12 +217,10 @@ fun RecapExerciseItem(
                     if (set.isWeightPR || set.is1RMPR || set.isVolumePR) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Star, 
-                                null, 
-                                tint = Color(0xFFFFD700), 
-                                modifier = Modifier.size(14.dp)
-                            )
+                            if (set.isWeightPR) Icon(Icons.Default.Star, null, tint = Color(0xFFFFD700), modifier = Modifier.size(14.dp))
+                            if (set.is1RMPR) Icon(Icons.Default.ElectricBolt, null, tint = Color(0xFF00E5FF), modifier = Modifier.size(14.dp).padding(start = if (set.isWeightPR) 2.dp else 0.dp))
+                            if (set.isVolumePR) Icon(Icons.Default.TrendingUp, null, tint = Color(0xFF76FF03), modifier = Modifier.size(14.dp).padding(start = if (set.isWeightPR || set.is1RMPR) 2.dp else 0.dp))
+
                             Spacer(modifier = Modifier.width(4.dp))
                             val prLabels = mutableListOf<String>()
                             if (set.isWeightPR) prLabels.add("WEIGHT")

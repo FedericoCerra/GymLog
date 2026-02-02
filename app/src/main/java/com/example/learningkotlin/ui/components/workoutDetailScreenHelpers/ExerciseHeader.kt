@@ -41,6 +41,7 @@ fun ExerciseHeader(
     onTimerChange: (Int) -> Unit,
     onManualTimerStart: (Int) -> Unit,
     onInfoClick: () -> Unit,
+    onExerciseClick: () -> Unit,
     onNotesChange: (String) -> Unit,
     onClearSets: () -> Unit
 ) {
@@ -76,7 +77,7 @@ fun ExerciseHeader(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     lineHeight = 22.sp,
-                    modifier = Modifier.clickable { onInfoClick() }
+                    modifier = Modifier.clickable { onExerciseClick() }
                 )
                 
                 Spacer(modifier = Modifier.height(4.dp))
