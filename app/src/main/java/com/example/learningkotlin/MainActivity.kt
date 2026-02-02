@@ -37,6 +37,9 @@ class MainActivity : ComponentActivity() {
         
         lifecycleScope.launch {
             ThemePreferences.load(this@MainActivity)
+            if (ThemePreferences.showOverlayBubble.value) {
+                checkOverlayPermission()
+            }
         }
         checkAndRequestPermissions()
         
@@ -80,9 +83,14 @@ class MainActivity : ComponentActivity() {
             if (!Settings.canDrawOverlays(this)) {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
+                    Uri.parse("package:" + packageName) // Correct Uri construction
                 )
-                startActivity(intent)
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Fallback to general settings if package specific fails
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                }
             }
         }
     }

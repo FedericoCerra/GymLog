@@ -10,13 +10,13 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.*
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -28,8 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
@@ -60,13 +58,12 @@ class WorkoutOverlayService : Service() {
         var isRunning = false
             private set
 
-        // Shared states for the overlay
-        private var workoutStartTime = mutableLongStateOf(0L)
-        private var restTimerSeconds = mutableIntStateOf(0)
-        private var isTimerRunning = mutableStateOf(false)
+        private val workoutStartTime = mutableLongStateOf(0L)
+        private val restTimerSeconds = mutableIntStateOf(0)
+        private val isTimerRunning = mutableStateOf(false)
         var activeWorkoutId = mutableIntStateOf(-1)
             private set
-        private var isVisible = mutableStateOf(true)
+        private val isVisible = mutableStateOf(true)
 
         fun start(context: Context, workoutName: String, startTime: Long, workoutId: Int) {
             workoutStartTime.longValue = startTime
@@ -122,7 +119,9 @@ class WorkoutOverlayService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        if (composeView == null && (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))) {
+        val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+        
+        if (composeView == null && hasPermission) {
             params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -141,10 +140,8 @@ class WorkoutOverlayService : Service() {
             val lifecycleOwner = object : LifecycleOwner, SavedStateRegistryOwner {
                 private val lifecycleRegistry = LifecycleRegistry(this)
                 private val savedStateRegistryController = SavedStateRegistryController.create(this)
-
                 override val lifecycle: Lifecycle get() = lifecycleRegistry
                 override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
-
                 fun handleEvent(event: Lifecycle.Event) = lifecycleRegistry.handleLifecycleEvent(event)
                 fun performRestore(state: android.os.Bundle?) = savedStateRegistryController.performRestore(state)
             }
@@ -159,12 +156,11 @@ class WorkoutOverlayService : Service() {
                 
                 setContent {
                     LearningKotlinTheme(dynamicColor = false) {
-                        val showBubble = ThemePreferences.showOverlayBubble.value
-                        AnimatedVisibility(
-                            visible = isVisible.value && showBubble,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut()
-                        ) {
+                        // Observe states using property delegation
+                        val isVisibleState by isVisible
+                        val showBubbleSetting by ThemePreferences.showOverlayBubble
+                        
+                        if (isVisibleState && showBubbleSetting) {
                             OverlayBubble(
                                 startTime = startTime,
                                 timerSeconds = restTimerSeconds.intValue,
@@ -189,7 +185,11 @@ class WorkoutOverlayService : Service() {
                 }
             }
 
-            windowManager.addView(composeView, params)
+            try {
+                windowManager.addView(composeView, params)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Failed to add overlay: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
 
         return START_NOT_STICKY
@@ -208,7 +208,7 @@ class WorkoutOverlayService : Service() {
             .setContentText("Workout: $workoutName is in progress")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
-            .setOngoing(showNotification) // Respect preference: ongoing if user wants it persistent
+            .setOngoing(showNotification)
             .setPriority(if (showNotification) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_MIN)
             .setSilent(!showNotification)
             .build()
