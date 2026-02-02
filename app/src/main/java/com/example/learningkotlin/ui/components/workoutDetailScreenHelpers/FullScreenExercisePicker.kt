@@ -46,16 +46,23 @@ fun FullScreenExercisePicker(
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color(0xFF0F0F0F) 
+            color = MaterialTheme.colorScheme.background 
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.8f))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null, tint = Color.White) }
-                        Text("Select Exercise", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = onDismiss) { 
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSurface) 
+                        }
+                        Text(
+                            "Select Exercise", 
+                            style = MaterialTheme.typography.titleLarge, 
+                            color = MaterialTheme.colorScheme.onSurface, 
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     
                     OutlinedTextField(
@@ -66,10 +73,10 @@ fun FullScreenExercisePicker(
                         leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.DarkGray
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                         )
                     )
                     
@@ -113,7 +120,7 @@ fun FullScreenExercisePicker(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF1C1C1E))
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 Text(
@@ -128,13 +135,13 @@ fun FullScreenExercisePicker(
                         items(exercises, key = { it.id }) { def ->
                             ListItem(
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                headlineContent = { Text(def.name, fontWeight = FontWeight.Bold, color = Color.White) },
+                                headlineContent = { Text(def.name, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                                 supportingContent = { 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         val primaryColor = MaterialTheme.colorScheme.primary
-                                        Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = Color.Gray)
+                                        Text(def.primaryMuscles.joinToString(", ").uppercase(), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         if (def.equipment != null) {
-                                            Text(" • ", color = Color.DarkGray)
+                                            Text(" • ", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                                             Text(def.equipment.uppercase(), fontSize = 10.sp, color = primaryColor.copy(alpha = 0.7f))
                                         }
                                     }
@@ -148,7 +155,7 @@ fun FullScreenExercisePicker(
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
-                                        Box(modifier = Modifier.size(56.dp).background(Color(0xFF1C1C1E), RoundedCornerShape(8.dp)))
+                                        Box(modifier = Modifier.size(56.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)))
                                     }
                                 },
                                 trailingContent = {
@@ -158,7 +165,7 @@ fun FullScreenExercisePicker(
                                 },
                                 modifier = Modifier.clickable { onExerciseSelected(def) }
                             )
-                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.DarkGray.copy(alpha = 0.3f))
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                         }
                     }
                 }
@@ -172,13 +179,13 @@ fun FilterChipItem(selected: Boolean, text: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = if (selected) MaterialTheme.colorScheme.primary else Color(0xFF1C1C1E),
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.height(32.dp)
     ) {
         Box(modifier = Modifier.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
             Text(
                 text = text.replaceFirstChar { it.uppercase() },
-                color = if (selected) Color.White else Color.Gray,
+                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
             )

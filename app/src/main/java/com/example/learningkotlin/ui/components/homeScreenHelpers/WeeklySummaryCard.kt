@@ -56,11 +56,13 @@ fun WeeklySummaryCard(
 
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -72,7 +74,7 @@ fun WeeklySummaryCard(
                     Text(
                         text = "THIS WEEK",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.5.sp
                     )
@@ -81,7 +83,7 @@ fun WeeklySummaryCard(
                         text = "$workoutsCount Workouts",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 
@@ -119,19 +121,24 @@ fun WeeklySummaryCard(
                                 .background(
                                     when {
                                         hasWorkout -> primaryColor
-                                        isToday -> Color.White.copy(alpha = 0.1f)
+                                        isToday -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                                         else -> Color.Transparent
                                     }
                                 )
                                 .let { 
-                                    if (!hasWorkout && !isToday) it.background(Color.DarkGray.copy(alpha = 0.15f))
+                                    if (!hasWorkout && !isToday) it.background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                     else it
                                 },
                             contentAlignment = Alignment.Center
                         ) {
+                            val textColor = if (hasWorkout) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                             Text(
                                 text = initial,
-                                color = if (hasWorkout) Color.White else Color.Gray,
+                                color = textColor,
                                 fontSize = 13.sp,
                                 fontWeight = if (hasWorkout || isToday) FontWeight.ExtraBold else FontWeight.Bold
                             )
@@ -143,7 +150,7 @@ fun WeeklySummaryCard(
                                 modifier = Modifier
                                     .size(4.dp)
                                     .clip(CircleShape)
-                                    .background(if (hasWorkout) primaryColor else Color.Gray)
+                                    .background(if (hasWorkout) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant)
                             )
                         } else {
                             Spacer(modifier = Modifier.size(4.dp))

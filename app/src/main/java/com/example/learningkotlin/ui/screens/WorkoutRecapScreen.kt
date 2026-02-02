@@ -72,13 +72,13 @@ fun WorkoutRecapScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
-        containerColor = Color.Black
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         key(refreshTrigger) {
             LazyColumn(
@@ -98,7 +98,7 @@ fun WorkoutRecapScreen(
                         tint = HevyGreen
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Workout Complete!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    Text(text = "Workout Complete!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onBackground)
                     Text(text = finishedWorkout.name, style = MaterialTheme.typography.titleLarge, color = primaryColor, fontWeight = FontWeight.Bold)
 
                     // DATE WITH EDIT ICON - Forced English Locale
@@ -124,7 +124,7 @@ fun WorkoutRecapScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(
@@ -141,14 +141,14 @@ fun WorkoutRecapScreen(
                                 modifier = Modifier.weight(1f),
                                 primaryColor = primaryColor
                             )
-                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
+                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                             StatItem(
                                 label = "Volume",
                                 value = "${finishedWorkout.totalVolume.toInt()} kg",
                                 modifier = Modifier.weight(1f),
                                 primaryColor = primaryColor
                             )
-                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = Color.DarkGray)
+                            VerticalDivider(modifier = Modifier.height(30.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                             StatItem(
                                 label = "Sets",
                                 value = finishedWorkout.totalSets.toString(),
@@ -189,7 +189,7 @@ fun WorkoutRecapScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Close Recap", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Close Recap", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(48.dp))
                 }
@@ -223,13 +223,13 @@ fun WorkoutRecapScreen(
             Card(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Edit Duration", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = Color.White)
+                    Text("Edit Duration", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(32.dp))
                     var tempSeconds by remember { mutableLongStateOf(finishedWorkout.durationSeconds) }
                     TimeWheelPicker(

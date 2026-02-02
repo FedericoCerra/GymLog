@@ -63,7 +63,7 @@ fun HomeScreen(
                 Text(
                     text = "My Routines",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
@@ -150,17 +150,17 @@ fun HomeScreen(
                 OutlinedTextField(
                     value = newWorkoutName,
                     onValueChange = { newWorkoutName = it },
-                    placeholder = { Text("Routine Name", color = Color.DarkGray) },
+                    placeholder = { Text("Routine Name", color = Color.Gray) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Black.copy(alpha = 0.3f),
-                        unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     )
                 )
             }

@@ -96,29 +96,24 @@ fun HistoryItem(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-                        Text(text = dateStr, color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = dateStr, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     }
                 }
                 Box {
                     IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Gray)
+                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    MaterialTheme(
-                        colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
-                        shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
+                    DropdownMenu(
+                        expanded = showMenu, 
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface).border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                     ) {
-                        DropdownMenu(
-                            expanded = showMenu, 
-                            onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(Color(0xFF1C1C1E)).border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Delete Workout", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
-                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                                onClick = { onDelete(); showMenu = false }
-                            )
-                        }
+                        DropdownMenuItem(
+                            text = { Text("Delete Workout", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = { onDelete(); showMenu = false }
+                        )
                     }
                 }
             }
@@ -130,7 +125,7 @@ fun HistoryItem(
                 text = workout.name, 
                 fontWeight = FontWeight.Black, 
                 fontSize = 22.sp, 
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = (-0.5).sp,
                 modifier = Modifier.padding(start = 8.dp)
             )
@@ -190,8 +185,8 @@ fun HistoryItem(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
-                                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)),
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             val imagePath = exercise.imagePath
@@ -204,7 +199,7 @@ fun HistoryItem(
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.FitnessCenter, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.FitnessCenter, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(14.dp))
@@ -212,7 +207,7 @@ fun HistoryItem(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "${exercise.sets.size} sets ${exercise.name}",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -243,9 +238,9 @@ fun HistoryItem(
 @Composable
 private fun PRChip(exerciseName: String, types: List<String>) {
     Surface(
-        color = Color.White.copy(alpha = 0.05f),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
         shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -253,7 +248,7 @@ private fun PRChip(exerciseName: String, types: List<String>) {
         ) {
             Text(
                 text = exerciseName, 
-                color = Color.White, 
+                color = MaterialTheme.colorScheme.onSurface, 
                 fontSize = 11.sp, 
                 fontWeight = FontWeight.Bold
             )
@@ -280,19 +275,19 @@ fun HistoryStatItem(label: String, value: String, modifier: Modifier = Modifier)
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.03f))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f))
             .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
         Text(
             text = label.uppercase(), 
-            color = Color.Gray, 
+            color = MaterialTheme.colorScheme.onSurfaceVariant, 
             fontSize = 9.sp, 
             fontWeight = FontWeight.Bold, 
             letterSpacing = 0.5.sp
         )
         Text(
             text = value, 
-            color = Color.White, 
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 16.sp, 
             fontWeight = FontWeight.Black
         )

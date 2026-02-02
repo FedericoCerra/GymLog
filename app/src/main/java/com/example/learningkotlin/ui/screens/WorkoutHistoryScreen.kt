@@ -33,7 +33,7 @@ fun WorkoutHistoryScreen(
     }
 
     Scaffold(
-        containerColor = Color.Black
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         if (sortedHistory.isEmpty()) {
             Column(
@@ -55,7 +55,7 @@ fun WorkoutHistoryScreen(
                     text = "No History Yet",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -78,7 +78,7 @@ fun WorkoutHistoryScreen(
                     Text(
                         text = "Workout History",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
                     )
@@ -126,7 +126,7 @@ fun WorkoutHistoryScreen(
                         if (index < sortedHistory.lastIndex) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-                                color = Color.White.copy(alpha = 0.12f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
                                 thickness = 0.5.dp
                             )
                         }

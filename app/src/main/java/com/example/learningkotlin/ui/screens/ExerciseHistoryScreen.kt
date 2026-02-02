@@ -70,12 +70,12 @@ fun ExerciseHistoryScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = Color.Black
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -91,7 +91,7 @@ fun ExerciseHistoryScreen(
                         .fillMaxWidth()
                         .height(180.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0xFF1C1C1E))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     if (exerciseDef?.images?.isNotEmpty() == true) {
                         AsyncImage(
@@ -110,7 +110,7 @@ fun ExerciseHistoryScreen(
                                 Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.8f)
+                                        MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
                                     )
                                 )
                             )
@@ -134,7 +134,7 @@ fun ExerciseHistoryScreen(
                         }
                         Text(
                             text = exerciseDef?.primaryMuscles?.joinToString(", ")?.uppercase() ?: "MUSCLES",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -205,13 +205,13 @@ fun ExerciseHistoryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onWorkoutClick(workout) },
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                     shape = RoundedCornerShape(20.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         1.5.dp, 
                         Brush.verticalGradient(
-                            0.0f to Color.White.copy(alpha = 0.2f),
-                            0.2f to Color.White.copy(alpha = 0.15f),
+                            0.0f to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                            0.2f to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                             0.5f to Color.Transparent
                         )
                     )
@@ -226,7 +226,7 @@ fun ExerciseHistoryScreen(
                                 Text(
                                     text = workout.name, 
                                     fontWeight = FontWeight.ExtraBold, 
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 16.sp
                                 )
                                 Text(text = year, fontSize = 11.sp, color = Color.Gray)
@@ -269,7 +269,7 @@ fun ExerciseHistoryScreen(
                                             .weight(1f)
                                             .height(32.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.03f))
+                                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                             .padding(horizontal = 12.dp),
                                         contentAlignment = Alignment.CenterStart
                                     ) {
@@ -284,7 +284,7 @@ fun ExerciseHistoryScreen(
                                                     text = "${ThemePreferences.formatWeight(set.weight)} x ${set.reps}",
                                                     fontSize = 14.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color.White
+                                                    color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
                                                     text = " ${ThemePreferences.weightUnit.value}",
@@ -337,16 +337,16 @@ fun PRCardGlass(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        Color.White.copy(alpha = 0.02f)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.02f)
                     )
                 )
             )
             .border(
                 1.5.dp, 
                 Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.2f),
-                    0.25f to Color.White.copy(alpha = 0.15f),
+                    0.0f to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    0.25f to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                     0.6f to Color.Transparent
                 ),
                 RoundedCornerShape(20.dp)
@@ -373,7 +373,7 @@ fun PRCardGlass(
                         text = value, 
                         fontSize = 20.sp, 
                         fontWeight = FontWeight.ExtraBold, 
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = " $unit", 

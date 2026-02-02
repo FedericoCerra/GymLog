@@ -115,7 +115,7 @@ fun NavGraph(
 
     val showBottomBar = currentRoute in listOf("home", "history", "detail/{workoutId}")
 
-    val barColor = Color(0xFF0F0F0F)
+    val barColor = MaterialTheme.colorScheme.surface
     val density = LocalDensity.current
     val systemBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val customBarHeight = 56.dp

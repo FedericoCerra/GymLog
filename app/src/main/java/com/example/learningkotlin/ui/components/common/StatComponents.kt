@@ -23,13 +23,15 @@ fun StatCard(
     value: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    containerColor: Color = Color.White.copy(alpha = 0.05f)
+    containerColor: Color? = null
 ) {
+    val finalContainerColor = containerColor ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(containerColor)
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .background(finalContainerColor)
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
             .padding(12.dp)
     ) {
         Column {
@@ -46,7 +48,7 @@ fun StatCard(
                 Text(
                     text = label.uppercase(),
                     fontSize = 9.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -56,7 +58,7 @@ fun StatCard(
                 text = value,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Black,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
         }

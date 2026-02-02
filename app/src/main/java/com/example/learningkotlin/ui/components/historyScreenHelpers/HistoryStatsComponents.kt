@@ -56,8 +56,8 @@ fun HistorySummaryStats(history: List<FinishedWorkout>) {
 @Composable
 fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
     Surface(
-        modifier = modifier.border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
-        color = Color.White.copy(alpha = 0.05f),
+        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(
@@ -68,7 +68,7 @@ fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
             Text(
                 text = label.uppercase(), 
                 fontSize = 10.sp, 
-                color = Color.Gray, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant, 
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.5.sp
@@ -76,7 +76,7 @@ fun DashboardStatItem(label: String, value: String, modifier: Modifier) {
             Text(
                 text = value, 
                 fontSize = 18.sp, 
-                color = Color.White, 
+                color = MaterialTheme.colorScheme.onSurface, 
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center
             )
@@ -91,8 +91,8 @@ fun WeeklyStatsPager(history: List<FinishedWorkout>) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
-        color = Color.White.copy(alpha = 0.05f),
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -122,7 +122,7 @@ fun WeeklyStatsPager(history: List<FinishedWorkout>) {
             
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 repeat(2) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) Color.White else Color.DarkGray
+                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     Box(modifier = Modifier.padding(horizontal = 4.dp).clip(CircleShape).background(color).size(6.dp))
                 }
             }
@@ -160,7 +160,7 @@ fun WeeklyGraph(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = primaryColor, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(title, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
         Spacer(modifier = Modifier.height(20.dp))
         Row(
@@ -180,15 +180,15 @@ fun WeeklyGraph(
                                 .width(16.dp)
                                 .fillMaxHeight(barHeight.coerceIn(0.05f, 1f))
                                 .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(if (value > 0) primaryColor else Color.White.copy(alpha = 0.1f))
+                                .background(if (value > 0) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         )
                     }
                     Box(modifier = Modifier.height(16.dp), contentAlignment = Alignment.Center) {
                         if (value > 0) {
-                            Text(text = formatValue(value), fontSize = 8.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+                            Text(text = formatValue(value), fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text(text = day, fontSize = 9.sp, color = if (value > 0) Color.White else Color.Gray, fontWeight = FontWeight.Bold)
+                    Text(text = day, fontSize = 9.sp, color = if (value > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -202,8 +202,8 @@ fun WorkoutStatsPagerCard(history: List<FinishedWorkout>) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
-        color = Color.White.copy(alpha = 0.05f),
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -222,7 +222,7 @@ fun WorkoutStatsPagerCard(history: List<FinishedWorkout>) {
             
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 repeat(2) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) Color.White else Color.DarkGray
+                    val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     Box(modifier = Modifier.padding(horizontal = 4.dp).clip(CircleShape).background(color).size(6.dp))
                 }
             }

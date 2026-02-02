@@ -41,10 +41,12 @@ fun WorkoutListItem(
             .clickable { onClick() }
             .border(
                 width = if (isActive) 2.dp else 1.dp, 
-                color = if (isActive) primaryColor else Color.White.copy(alpha = 0.05f), 
+                color = if (isActive) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), 
                 shape = RoundedCornerShape(24.dp)
             ),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E).copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
         shape = RoundedCornerShape(24.dp)
     ) {
         Row(
@@ -59,51 +61,46 @@ fun WorkoutListItem(
                     text = workout.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isActive) primaryColor else Color.White
+                    color = if (isActive) primaryColor else MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 val exerciseCount = workout.exercises.size
                 Text(
                     text = if (isActive) "Workout in progress..." else if (exerciseCount == 0) "No exercises" else "$exerciseCount exercises",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isActive) primaryColor.copy(alpha = 0.8f) else Color.Gray
+                    color = if (isActive) primaryColor.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = Color.Gray)
+                    Icon(Icons.Default.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
-                MaterialTheme(
-                    colorScheme = MaterialTheme.colorScheme.copy(surface = Color(0xFF1C1C1E)),
-                    shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(16.dp))
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
                 ) {
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                        modifier = Modifier
-                            .background(Color(0xFF1C1C1E))
-                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Rename", color = Color.White, fontWeight = FontWeight.Medium) },
-                            onClick = {
-                                showMenu = false
-                                showRenameDialog = true
-                            },
-                            leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color.White) }
-                        )
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                        DropdownMenuItem(
-                            text = { Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
-                            onClick = {
-                                showMenu = false
-                                onDelete()
-                            },
-                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = { Text("Rename", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium) },
+                        onClick = {
+                            showMenu = false
+                            showRenameDialog = true
+                        },
+                        leadingIcon = { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.onSurface) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                    )
                 }
             }
         }
@@ -143,12 +140,12 @@ fun WorkoutListItem(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedContainerColor = Color.Black.copy(alpha = 0.3f),
-                    unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 )
             )
         }
