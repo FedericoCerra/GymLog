@@ -172,8 +172,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             totalSets = totalSets,
             exercises = target.exercises.map { ex -> 
                 val def = ExerciseLibrary.getDefinitions().find { d -> d.name == ex.name }
+                
+                // Final PR calculation for history persistence
+                val historicalBests = getPersonalBests(ex.name)
+                val doneSets = ex.sets.filter { s -> s.isDone }
+                
+                val sessionBestWeight = doneSets.maxOfOrNull { it.weight } ?: -1.0
+                val sessionBest1RM = doneSets.maxOfOrNull { it.calculate1RM() } ?: -1.0
+                val sessionBestVolume = doneSets.maxOfOrNull { it.calculateVolume() } ?: -1.0
+                
+                // Identify the IDs of the LAST occurring session bests
+                val lastBestWeightId = doneSets.findLast { it.weight == sessionBestWeight }?.id ?: -1
+                val lastBest1RMId = doneSets.findLast { it.calculate1RM() == sessionBest1RM }?.id ?: -1
+                val lastBestVolumeId = doneSets.findLast { it.calculateVolume() == sessionBestVolume }?.id ?: -1
+
                 ex.copy(
-                    sets = ex.sets.filter { s -> s.isDone }.toMutableList(),
+                    sets = doneSets.map { s ->
+                        s.copy(
+                            isWeightPR = s.id == lastBestWeightId && s.weight > 0 && (historicalBests.maxWeight == 0.0 || s.weight > historicalBests.maxWeight),
+                            is1RMPR = s.id == lastBest1RMId && s.calculate1RM() > 0 && (historicalBests.max1RM == 0.0 || s.calculate1RM() > historicalBests.max1RM),
+                            isVolumePR = s.id == lastBestVolumeId && s.calculateVolume() > 0 && (historicalBests.maxVolume == 0.0 || s.calculateVolume() > historicalBests.maxVolume)
+                        )
+                    }.toMutableList(),
                     primaryMuscles = def?.primaryMuscles ?: emptyList()
                 )
             }.filter { ex -> ex.sets.isNotEmpty() }
