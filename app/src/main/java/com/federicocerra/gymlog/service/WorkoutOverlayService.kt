@@ -6,8 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
-import android.os.Build
-import android.os.IBinder
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.os.*
 import android.provider.Settings
 import android.view.*
 import androidx.compose.foundation.background
@@ -39,15 +40,20 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.federicocerra.gymlog.MainActivity
+import com.federicocerra.gymlog.R
 import com.federicocerra.gymlog.data.ThemePreferences
 import com.federicocerra.gymlog.ui.theme.LearningKotlinTheme
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 
 class WorkoutOverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var composeView: ComposeView? = null
     private var params: WindowManager.LayoutParams? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var timerJob: Job? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var lastWorkoutName = "Workout"
 
     companion object {
         private const val CHANNEL_ID = "workout_overlay_channel"
@@ -56,9 +62,9 @@ class WorkoutOverlayService : Service() {
         var isRunning = false
             private set
 
-        private val workoutStartTime = mutableLongStateOf(0L)
-        private val restTimerSeconds = mutableIntStateOf(0)
-        private val isTimerRunning = mutableStateOf(false)
+        val workoutStartTime = mutableLongStateOf(0L)
+        val restTimerSeconds = mutableIntStateOf(0)
+        val isTimerRunning = mutableStateOf(false)
         var activeWorkoutId = mutableIntStateOf(-1)
             private set
         private val isVisible = mutableStateOf(true)
@@ -67,6 +73,7 @@ class WorkoutOverlayService : Service() {
             workoutStartTime.longValue = startTime
             activeWorkoutId.intValue = workoutId
             val intent = Intent(context, WorkoutOverlayService::class.java).apply {
+                action = "START_WORKOUT"
                 putExtra("workout_name", workoutName)
                 putExtra("start_time", startTime)
                 putExtra("workout_id", workoutId)
@@ -78,9 +85,27 @@ class WorkoutOverlayService : Service() {
             }
         }
 
-        fun updateTimer(seconds: Int, isRunning: Boolean) {
-            restTimerSeconds.intValue = seconds
-            isTimerRunning.value = isRunning
+        fun requestStartTimer(context: Context, seconds: Int) {
+            val intent = Intent(context, WorkoutOverlayService::class.java).apply {
+                action = "START_TIMER"
+                putExtra("seconds", seconds)
+            }
+            context.startService(intent)
+        }
+
+        fun requestStopTimer(context: Context) {
+            val intent = Intent(context, WorkoutOverlayService::class.java).apply {
+                action = "STOP_TIMER"
+            }
+            context.startService(intent)
+        }
+        
+        fun requestUpdateTimer(context: Context, delta: Int) {
+            val intent = Intent(context, WorkoutOverlayService::class.java).apply {
+                action = "UPDATE_TIMER"
+                putExtra("delta", delta)
+            }
+            context.startService(intent)
         }
 
         fun setVisibility(visible: Boolean) {
@@ -100,13 +125,39 @@ class WorkoutOverlayService : Service() {
         isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotificationChannel()
+        
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GymLog::WorkoutTimerWakeLock")
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val workoutName = intent?.getStringExtra("workout_name") ?: "Workout"
-        val startTime = intent?.getLongExtra("start_time", workoutStartTime.longValue) ?: workoutStartTime.longValue
-        val workoutId = intent?.getIntExtra("workout_id", activeWorkoutId.intValue) ?: activeWorkoutId.intValue
+        when (intent?.action) {
+            "START_WORKOUT" -> {
+                handleStartWorkout(intent)
+            }
+            "START_TIMER" -> {
+                val seconds = intent.getIntExtra("seconds", 0)
+                startRestTimer(seconds)
+            }
+            "STOP_TIMER" -> {
+                stopRestTimer()
+            }
+            "UPDATE_TIMER" -> {
+                val delta = intent.getIntExtra("delta", 0)
+                updateRestTimer(delta)
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun handleStartWorkout(intent: Intent) {
+        val workoutName = intent.getStringExtra("workout_name") ?: "Workout"
+        val startTime = intent.getLongExtra("start_time", workoutStartTime.longValue)
+        val workoutId = intent.getIntExtra("workout_id", activeWorkoutId.intValue)
+        
+        lastWorkoutName = workoutName
+        workoutStartTime.longValue = startTime
         activeWorkoutId.intValue = workoutId
 
         val notification = createNotification(workoutName)
@@ -117,79 +168,166 @@ class WorkoutOverlayService : Service() {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+        setupOverlay(startTime, workoutId)
+    }
+
+    private fun startRestTimer(seconds: Int) {
+        timerJob?.cancel()
+        restTimerSeconds.intValue = seconds
+        isTimerRunning.value = true
         
-        if (composeView == null && hasPermission) {
-            params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                else
-                    @Suppress("DEPRECATION")
-                    WindowManager.LayoutParams.TYPE_PHONE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                x = 100
-                y = 200
+        // Acquire WakeLock to keep CPU running
+        if (wakeLock?.isHeld == false) {
+            wakeLock?.acquire(seconds * 1000L + 5000L) // Duration + buffer
+        }
+        
+        timerJob = serviceScope.launch {
+            while (restTimerSeconds.intValue > 0) {
+                delay(1000L)
+                restTimerSeconds.intValue -= 1
+                updateNotificationWithTimer()
+            }
+            isTimerRunning.value = false
+            if (wakeLock?.isHeld == true) { wakeLock?.release() }
+            
+            if (ThemePreferences.timerSound.value) {
+                triggerTimerAlert()
+            }
+            updateNotificationWithTimer()
+        }
+    }
+
+    private fun stopRestTimer() {
+        timerJob?.cancel()
+        restTimerSeconds.intValue = 0
+        isTimerRunning.value = false
+        if (wakeLock?.isHeld == true) { wakeLock?.release() }
+        updateNotificationWithTimer()
+    }
+
+    private fun updateRestTimer(delta: Int) {
+        val newVal = restTimerSeconds.intValue + delta
+        if (newVal <= 0) {
+            if (isTimerRunning.value && ThemePreferences.timerSound.value) {
+                triggerTimerAlert()
+            }
+            stopRestTimer()
+        } else {
+            restTimerSeconds.intValue = newVal
+            // Extend WakeLock if needed
+            if (isTimerRunning.value && wakeLock?.isHeld == true) {
+                wakeLock?.release()
+                wakeLock?.acquire(newVal * 1000L + 5000L)
+            }
+            updateNotificationWithTimer()
+        }
+    }
+    
+    private fun updateNotificationWithTimer() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, createNotification(lastWorkoutName))
+    }
+
+    private fun triggerTimerAlert() {
+        try {
+            val mediaPlayer = MediaPlayer.create(this, R.raw.bell_notification)
+            mediaPlayer.setVolume(0.4f, 0.4f)
+            mediaPlayer.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mediaPlayer.setOnCompletionListener { it.release() }
+            mediaPlayer.start()
+        } catch (_: Exception) { }
+
+        try {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                vibratorManager.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
 
-            val lifecycleOwner = object : LifecycleOwner, SavedStateRegistryOwner {
-                private val lifecycleRegistry = LifecycleRegistry(this)
-                private val savedStateRegistryController = SavedStateRegistryController.create(this)
-                override val lifecycle: Lifecycle get() = lifecycleRegistry
-                override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
-                fun handleEvent(event: Lifecycle.Event) = lifecycleRegistry.handleLifecycleEvent(event)
-                fun performRestore(state: android.os.Bundle?) = savedStateRegistryController.performRestore(state)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 400, 200, 400), -1))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 400, 200, 400), -1)
             }
-            lifecycleOwner.performRestore(null)
-            lifecycleOwner.handleEvent(Lifecycle.Event.ON_CREATE)
-            lifecycleOwner.handleEvent(Lifecycle.Event.ON_START)
-            lifecycleOwner.handleEvent(Lifecycle.Event.ON_RESUME)
+        } catch (_: Exception) { }
+    }
 
-            composeView = ComposeView(this).apply {
-                setViewTreeLifecycleOwner(lifecycleOwner)
-                setViewTreeSavedStateRegistryOwner(lifecycleOwner)
-                
-                setContent {
-                    LearningKotlinTheme(dynamicColor = false) {
-                        // Observe states using property delegation
-                        val isVisibleState by isVisible
-                        val showBubbleSetting by ThemePreferences.showOverlayBubble
-                        
-                        if (isVisibleState && showBubbleSetting) {
-                            OverlayBubble(
-                                startTime = startTime,
-                                timerSeconds = restTimerSeconds.intValue,
-                                isTimerActive = isTimerRunning.value,
-                                onMove = { dx, dy ->
-                                    params?.let {
-                                        it.x += dx.toInt()
-                                        it.y += dy.toInt()
-                                        windowManager.updateViewLayout(this@apply, it)
-                                    }
-                                },
-                                onClick = {
-                                    val launchIntent = Intent(this@apply.context, MainActivity::class.java).apply {
-                                        setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                                        putExtra("navigate_to_workout", workoutId)
-                                    }
-                                    startActivity(launchIntent)
+    private fun setupOverlay(startTime: Long, workoutId: Int) {
+        val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+        if (composeView != null || !hasPermission) return
+
+        params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 100
+            y = 200
+        }
+
+        val lifecycleOwner = object : LifecycleOwner, SavedStateRegistryOwner {
+            private val lifecycleRegistry = LifecycleRegistry(this)
+            private val savedStateRegistryController = SavedStateRegistryController.create(this)
+            override val lifecycle: Lifecycle get() = lifecycleRegistry
+            override val savedStateRegistry: SavedStateRegistry get() = savedStateRegistryController.savedStateRegistry
+            fun handleEvent(event: Lifecycle.Event) = lifecycleRegistry.handleLifecycleEvent(event)
+            fun performRestore(state: android.os.Bundle?) = savedStateRegistryController.performRestore(state)
+        }
+        lifecycleOwner.performRestore(null)
+        lifecycleOwner.handleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycleOwner.handleEvent(Lifecycle.Event.ON_START)
+        lifecycleOwner.handleEvent(Lifecycle.Event.ON_RESUME)
+
+        composeView = ComposeView(this).apply {
+            setViewTreeLifecycleOwner(lifecycleOwner)
+            setViewTreeSavedStateRegistryOwner(lifecycleOwner)
+            
+            setContent {
+                LearningKotlinTheme(dynamicColor = false) {
+                    val isVisibleState by isVisible
+                    val showBubbleSetting by ThemePreferences.showOverlayBubble
+                    
+                    if (isVisibleState && showBubbleSetting) {
+                        OverlayBubble(
+                            startTime = startTime,
+                            onMove = { dx, dy ->
+                                params?.let {
+                                    it.x += dx.toInt()
+                                    it.y += dy.toInt()
+                                    windowManager.updateViewLayout(this@apply, it)
                                 }
-                            )
-                        }
+                            },
+                            onClick = {
+                                val launchIntent = Intent(this@apply.context, MainActivity::class.java).apply {
+                                    setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                    putExtra("navigate_to_workout", workoutId)
+                                }
+                                startActivity(launchIntent)
+                            }
+                        )
                     }
                 }
             }
-
-            try {
-                windowManager.addView(composeView, params)
-            } catch (_: Exception) { }
         }
 
-        return START_NOT_STICKY
+        try {
+            windowManager.addView(composeView, params)
+        } catch (_: Exception) { }
     }
 
     private fun createNotification(workoutName: String): Notification {
@@ -197,17 +335,22 @@ class WorkoutOverlayService : Service() {
             setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
         val showNotification = ThemePreferences.showWorkoutNotification.value
         
+        val timerText = if (isTimerRunning.value && restTimerSeconds.intValue > 0) {
+            val m = restTimerSeconds.intValue / 60
+            val s = restTimerSeconds.intValue % 60
+            " | Rest: %d:%02d".format(m, s)
+        } else ""
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Active Workout")
-            .setContentText("Workout: $workoutName is in progress")
+            .setContentTitle("Active Workout: $workoutName")
+            .setContentText("Workout in progress$timerText")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(showNotification)
             .setPriority(if (showNotification) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_MIN)
-            .setSilent(!showNotification)
+            .setSilent(true) // Always silent updates to avoid spamming sounds
             .build()
     }
 
@@ -226,6 +369,9 @@ class WorkoutOverlayService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        timerJob?.cancel()
+        serviceScope.cancel()
+        if (wakeLock?.isHeld == true) { wakeLock?.release() }
         composeView?.let {
             windowManager.removeView(it)
         }
@@ -236,13 +382,15 @@ class WorkoutOverlayService : Service() {
 @Composable
 fun OverlayBubble(
     startTime: Long,
-    timerSeconds: Int,
-    isTimerActive: Boolean,
     onMove: (Float, Float) -> Unit,
     onClick: () -> Unit
 ) {
     var workoutDurationSeconds by remember { mutableLongStateOf(0L) }
     val primaryColor = MaterialTheme.colorScheme.primary
+    
+    // Use the static states from the Service
+    val timerSeconds = WorkoutOverlayService.restTimerSeconds.intValue
+    val isTimerActive = WorkoutOverlayService.isTimerRunning.value
 
     LaunchedEffect(startTime) {
         while (true) {

@@ -24,6 +24,7 @@ import com.federicocerra.gymlog.ui.components.historyScreenHelpers.WorkoutStatsP
 @Composable
 fun WorkoutHistoryScreen(
     history: List<FinishedWorkout>,
+    isLoading: Boolean,
     onWorkoutClick: (FinishedWorkout) -> Unit,
     onDeleteWorkout: (Int) -> Unit,
     bottomBarPadding: Dp = 0.dp
@@ -35,7 +36,11 @@ fun WorkoutHistoryScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        if (sortedHistory.isEmpty()) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (sortedHistory.isEmpty()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()

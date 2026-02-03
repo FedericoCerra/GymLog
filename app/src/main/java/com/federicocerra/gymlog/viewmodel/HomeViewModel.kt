@@ -1,17 +1,9 @@
 package com.federicocerra.gymlog.viewmodel
 
 import android.app.Application
-import android.content.Context
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.federicocerra.gymlog.R
 import com.federicocerra.gymlog.data.ExerciseLibrary
 import com.federicocerra.gymlog.data.ThemePreferences
 import com.federicocerra.gymlog.data.repository.HistoryRepository
@@ -20,8 +12,6 @@ import com.federicocerra.gymlog.model.FinishedWorkout
 import com.federicocerra.gymlog.model.Workout
 import com.federicocerra.gymlog.model.WorkoutSet
 import com.federicocerra.gymlog.service.WorkoutOverlayService
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class ExercisePersonalBests(
@@ -40,14 +30,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var history by mutableStateOf<List<FinishedWorkout>>(emptyList())
         private set
-    
-    var restTimerSeconds by mutableIntStateOf(0)
+    var isLoading by mutableStateOf(true)
         private set
+    
+    // Bridge to Service state
+    val restTimerSeconds get() = WorkoutOverlayService.restTimerSeconds.intValue
+    val isRestTimerRunning get() = WorkoutOverlayService.isTimerRunning.value
+    
     var initialRestTimerSeconds by mutableIntStateOf(0) 
         private set
-    var isRestTimerRunning by mutableStateOf(false)
-        private set
-    private var timerJob: Job? = null
 
     var lastFinishedWorkout by mutableStateOf<FinishedWorkout?>(null)
         private set
@@ -62,6 +53,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadInitialData() {
         viewModelScope.launch {
+            isLoading = true
             workouts = workoutRepository.getWorkouts()
             history = historyRepository.getHistory()
             
@@ -69,6 +61,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             workouts.find { it.isActive }?.let { active ->
                 WorkoutOverlayService.start(getApplication(), active.name, active.startTime ?: System.currentTimeMillis(), active.id)
             }
+            isLoading = false
         }
     }
 
@@ -252,100 +245,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startRestTimer(seconds: Int) {
-        timerJob?.cancel()
         initialRestTimerSeconds = seconds
-        restTimerSeconds = seconds
-        isRestTimerRunning = true
-        WorkoutOverlayService.updateTimer(restTimerSeconds, true)
-        
-        timerJob = viewModelScope.launch {
-            while (restTimerSeconds > 0) {
-                delay(1000L)
-                restTimerSeconds -= 1
-                WorkoutOverlayService.updateTimer(restTimerSeconds, true)
-            }
-            isRestTimerRunning = false
-            WorkoutOverlayService.updateTimer(0, false)
-            
-            // Play sound and vibrate if enabled
-            if (ThemePreferences.timerSound.value) {
-                triggerTimerAlert()
-            }
-        }
-    }
-
-    private fun triggerTimerAlert() {
-        val context = getApplication<Application>()
-        
-        // 1. Play Custom Bell Sound (res/raw/bell_notification.mp3)
-        try {
-            val mediaPlayer = MediaPlayer.create(context, R.raw.bell_notification)
-            mediaPlayer.setVolume(0.4f, 0.4f)
-            mediaPlayer.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            mediaPlayer.setOnCompletionListener { it.release() }
-            mediaPlayer.start()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        // 2. Vibrate
-        try {
-            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vibratorManager.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            }
-
-            // More noticeable pattern: [delay, vibrate, sleep, vibrate]
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val effect = VibrationEffect.createWaveform(longArrayOf(0, 400, 200, 400), -1)
-                vibrator.vibrate(effect)
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(longArrayOf(0, 400, 200, 400), -1)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        WorkoutOverlayService.requestStartTimer(getApplication(), seconds)
     }
 
     fun skipTimer() {
-        timerJob?.cancel()
-        restTimerSeconds = 0
         initialRestTimerSeconds = 0
-        isRestTimerRunning = false
-        WorkoutOverlayService.updateTimer(0, false)
+        WorkoutOverlayService.requestStopTimer(getApplication())
     }
 
     fun add15Seconds() {
-        restTimerSeconds += 15
         initialRestTimerSeconds += 15
-        WorkoutOverlayService.updateTimer(restTimerSeconds, isRestTimerRunning)
+        WorkoutOverlayService.requestUpdateTimer(getApplication(), 15)
     }
 
     fun sub15Seconds() {
         if (restTimerSeconds > 15) {
-            restTimerSeconds -= 15
-            WorkoutOverlayService.updateTimer(restTimerSeconds, isRestTimerRunning)
-        } else if (isRestTimerRunning) {
-            // Trigger alert if it was running and we subbed below 0
-            restTimerSeconds = 0
-            isRestTimerRunning = false
-            timerJob?.cancel()
-            WorkoutOverlayService.updateTimer(0, false)
-            if (ThemePreferences.timerSound.value) {
-                triggerTimerAlert()
-            }
+            initialRestTimerSeconds -= 15
         } else {
-            skipTimer()
+            initialRestTimerSeconds = 0
         }
+        WorkoutOverlayService.requestUpdateTimer(getApplication(), -15)
     }
 
     fun onDetailScreenExit() {

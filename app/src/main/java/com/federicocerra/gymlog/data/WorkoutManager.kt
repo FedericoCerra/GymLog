@@ -44,11 +44,10 @@ object WorkoutManager {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             try {
-                // Firestore doesn't support direct serialization of custom classes easily without no-arg constructors,
-                // so we store it as a JSON string or a Map. Storing as a Map is better for console visibility.
+                // Store the full wrapper JSON string to keep logic consistent
                 val dataMap = mapOf(
                     "lastUpdated" to timestamp,
-                    "routinesJson" to jsonString // Store as JSON string in Firestore to avoid mapping issues
+                    "routinesJson" to jsonString 
                 )
                 db.collection("users").document(userId)
                     .collection("data").document("workouts")
@@ -69,14 +68,13 @@ object WorkoutManager {
                 localWrapper = if (content.contains("lastUpdated")) {
                     json.decodeFromString<WorkoutSyncWrapper>(content)
                 } else {
-                    // Migrate old format
                     val oldList = json.decodeFromString<List<Workout>>(content)
                     WorkoutSyncWrapper(0, oldList)
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }
 
-        // 2. Try to Sync with Firebase
+        // 2. Sync with Firebase
         try {
             val document = db.collection("users").document(userId)
                 .collection("data").document("workouts")
@@ -85,25 +83,27 @@ object WorkoutManager {
 
             if (document.exists()) {
                 val remoteTimestamp = document.getLong("lastUpdated") ?: 0L
-                val remoteJson = document.getString("routinesJson")
+                val remoteJsonContent = document.getString("routinesJson")
                 
-                if (remoteJson != null) {
-                    val remoteWrapper = WorkoutSyncWrapper(remoteTimestamp, json.decodeFromString(remoteJson))
+                if (remoteJsonContent != null) {
+                    // Important: Determine if remoteJsonContent is the wrapper or just the list
+                    val remoteRoutines = if (remoteJsonContent.contains("lastUpdated")) {
+                        json.decodeFromString<WorkoutSyncWrapper>(remoteJsonContent).routines
+                    } else {
+                        json.decodeFromString<List<Workout>>(remoteJsonContent)
+                    }
                     
+                    val remoteWrapper = WorkoutSyncWrapper(remoteTimestamp, remoteRoutines)
                     val localTimestamp = localWrapper?.lastUpdated ?: -1L
                     
                     if (remoteTimestamp > localTimestamp) {
-                        // Remote is newer, update local
-                        file.writeText(remoteJson) // The remoteJson is already the full wrapper if we saved it that way, 
-                                                   // actually we saved a map. Let's fix that.
+                        // Remote is newer or local is missing
                         val fullRemoteJson = json.encodeToString(remoteWrapper)
                         file.writeText(fullRemoteJson)
                         return remoteWrapper.routines
-                    } else if (localTimestamp > remoteTimestamp) {
-                        // Local is newer (offline changes), push to remote
-                        if (localWrapper != null) {
-                            saveWorkouts(context, localWrapper.routines)
-                        }
+                    } else if (localTimestamp > remoteTimestamp && localWrapper != null) {
+                        // Local is newer, push to remote
+                        saveWorkouts(context, localWrapper.routines)
                     }
                 }
             } else if (localWrapper != null) {
@@ -111,7 +111,7 @@ object WorkoutManager {
                 saveWorkouts(context, localWrapper.routines)
             }
         } catch (e: Exception) {
-            // Offline or error, just use local
+            e.printStackTrace()
         }
 
         return localWrapper?.routines ?: emptyList()

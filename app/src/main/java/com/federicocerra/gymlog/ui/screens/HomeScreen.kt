@@ -42,82 +42,88 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(top = innerPadding.calculateTopPadding())
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { 
-                HomeHeader(onProfileClick = onProfileClick) 
+        if (viewModel.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-            item { 
-                WeeklySummaryCard(
-                    history = viewModel.history,
-                    onClick = onSummaryClick
-                ) 
-            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(top = innerPadding.calculateTopPadding())
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item { 
+                    HomeHeader(onProfileClick = onProfileClick) 
+                }
+                item { 
+                    WeeklySummaryCard(
+                        history = viewModel.history,
+                        onClick = onSummaryClick
+                    ) 
+                }
 
-            item {
-                Text(
-                    text = "My Routines",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-            }
+                item {
+                    Text(
+                        text = "My Routines",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
 
-            // 1. YOUR ROUTINES LIST
-            items(workouts, key = { it.id }) { workout ->
-                WorkoutListItem(
-                    workout = workout,
-                    onClick = { onWorkoutClick(workout) },
-                    onDelete = { viewModel.deleteWorkout(workout) },
-                    onRename = { newName -> viewModel.renameWorkout(workout, newName) }
-                )
-            }
+                // 1. YOUR ROUTINES LIST
+                items(workouts, key = { it.id }) { workout ->
+                    WorkoutListItem(
+                        workout = workout,
+                        onClick = { onWorkoutClick(workout) },
+                        onDelete = { viewModel.deleteWorkout(workout) },
+                        onRename = { newName -> viewModel.renameWorkout(workout, newName) }
+                    )
+                }
 
-            // 2. MODERN "ADD" CARD AT THE BOTTOM
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { 
-                            newWorkoutName = ""
-                            showDialog = true 
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Add, 
-                            contentDescription = null, 
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "CREATE NEW ROUTINE",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
-                            letterSpacing = 1.sp
-                        )
+                // 2. MODERN "ADD" CARD AT THE BOTTOM
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { 
+                                newWorkoutName = ""
+                                showDialog = true 
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Add, 
+                                contentDescription = null, 
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "CREATE NEW ROUTINE",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp,
+                                letterSpacing = 1.sp
+                            )
+                        }
                     }
                 }
-            }
 
-            item { Spacer(modifier = Modifier.height(bottomBarPadding + 80.dp)) }
+                item { Spacer(modifier = Modifier.height(bottomBarPadding + 80.dp)) }
+            }
         }
 
         if (showDialog) {

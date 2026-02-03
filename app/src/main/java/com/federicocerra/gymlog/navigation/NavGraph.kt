@@ -205,6 +205,7 @@ fun NavGraph(
                     composable("history") {
                         WorkoutHistoryScreen(
                             history = homeViewModel.history,
+                            isLoading = homeViewModel.isLoading,
                             onWorkoutClick = { workout ->
                                 selectedHistoryWorkout = workout
                                 navController.navigate("history_recap")

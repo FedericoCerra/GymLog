@@ -104,23 +104,26 @@ object HistoryManager {
 
             if (document.exists()) {
                 val remoteTimestamp = document.getLong("lastUpdated") ?: 0L
-                val remoteJson = document.getString("historyJson")
+                val remoteJsonContent = document.getString("historyJson")
 
-                if (remoteJson != null) {
-                    val remoteWorkouts = json.decodeFromString<List<FinishedWorkout>>(remoteJson)
+                if (remoteJsonContent != null) {
+                    val remoteWorkouts = if (remoteJsonContent.contains("lastUpdated")) {
+                        json.decodeFromString<HistorySyncWrapper>(remoteJsonContent).workouts
+                    } else {
+                        json.decodeFromString<List<FinishedWorkout>>(remoteJsonContent)
+                    }
+                    
                     val remoteWrapper = HistorySyncWrapper(remoteTimestamp, remoteWorkouts)
                     val localTimestamp = localWrapper?.lastUpdated ?: -1L
 
                     if (remoteTimestamp > localTimestamp) {
-                        // Remote is newer
+                        // Remote is newer or local is missing
                         val fullRemoteJson = json.encodeToString(remoteWrapper)
                         file.writeText(fullRemoteJson)
                         return remoteWrapper.workouts
-                    } else if (localTimestamp > remoteTimestamp) {
+                    } else if (localTimestamp > remoteTimestamp && localWrapper != null) {
                         // Local is newer
-                        if (localWrapper != null) {
-                            saveHistoryInternal(context, localWrapper.workouts)
-                        }
+                        saveHistoryInternal(context, localWrapper.workouts)
                     }
                 }
             } else if (localWrapper != null) {
