@@ -1,0 +1,13 @@
+package com.federicocerra.gymlog.model
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Exercise(
+    val id: Int,
+    var name: String,
+    val sets: MutableList<WorkoutSet>,
+    var restTimer: Int = 90,
+    var imagePath: String? = null,
+    var notes: String = "",
+    val primaryMuscles: List<String> = emptyList() // Added to track in history
+)

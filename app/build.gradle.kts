@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.learningkotlin"
+    namespace = "com.federicocerra.gymlog"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.learningkotlin"
+        applicationId = "com.federicocerra.gymlog"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
