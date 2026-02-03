@@ -21,9 +21,9 @@ A modern, feature-rich Android fitness application built with **Jetpack Compose*
 
 ## 📸 Screenshots
 
-<img width="921" height="2048" alt="image" src="https://github.com/user-attachments/assets/9206216f-145d-4508-8458-98688fece917" />
-<img width="921" height="2048" alt="image" src="https://github.com/user-attachments/assets/084f5d08-cca6-40b1-872d-21f1f9a723f1" />
-<img width="921" height="2048" alt="image" src="https://github.com/user-attachments/assets/1322d9f6-d9e9-4f2d-a409-c975eee8b706" />
+<img width="307" height="683" alt="image" src="https://github.com/user-attachments/assets/9206216f-145d-4508-8458-98688fece917" />
+<img width="307" height="683" alt="image" src="https://github.com/user-attachments/assets/084f5d08-cca6-40b1-872d-21f1f9a723f1" />
+<img width="307" height="683" alt="image" src="https://github.com/user-attachments/assets/1322d9f6-d9e9-4f2d-a409-c975eee8b706" />
 
 
 ## 🛠 Tech Stack
