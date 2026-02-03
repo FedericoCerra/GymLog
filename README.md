@@ -38,7 +38,7 @@ A modern, feature-rich Android fitness application built with **Jetpack Compose*
 
 ## 📲 Download
 
-You can download the latest version of the app from the [Releases](https://github.com/yourusername/learningKotlin/releases) page.
+You can download the latest version of the app from the [Releases](https://github.com/FedericoCerra/GymLog/releases) page.
 
 1. Download the `.apk` file.
 2. Open the file on your Android device.
