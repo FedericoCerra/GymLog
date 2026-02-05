@@ -25,9 +25,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val workoutRepository = WorkoutRepository(application)
     private val historyRepository = HistoryRepository(application)
 
-    // 1. STATE
-    var workouts by mutableStateOf<List<Workout>>(emptyList())
-        private set
+    // 1. STATE - Using SnapshotStateList for better reordering support
+    private val _workouts = mutableStateListOf<Workout>()
+    val workouts: List<Workout> get() = _workouts
+
     var history by mutableStateOf<List<FinishedWorkout>>(emptyList())
         private set
     var isLoading by mutableStateOf(true)
@@ -54,11 +55,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadInitialData() {
         viewModelScope.launch {
             isLoading = true
-            workouts = workoutRepository.getWorkouts()
+            val loadedWorkouts = workoutRepository.getWorkouts()
+            _workouts.clear()
+            _workouts.addAll(loadedWorkouts)
+            
             history = historyRepository.getHistory()
             
             // Resume overlay if a workout was active
-            workouts.find { it.isActive }?.let { active ->
+            _workouts.find { it.isActive }?.let { active ->
                 WorkoutOverlayService.start(getApplication(), active.name, active.startTime ?: System.currentTimeMillis(), active.id)
             }
             isLoading = false
@@ -66,7 +70,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearData() {
-        workouts = emptyList()
+        _workouts.clear()
         history = emptyList()
         skipTimer()
         lastFinishedWorkout = null
@@ -74,32 +78,40 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveRoutines() {
         viewModelScope.launch {
-            workoutRepository.saveWorkouts(workouts)
+            workoutRepository.saveWorkouts(_workouts.toList())
         }
     }
 
-    fun updateWorkoutsOrder(newWorkouts: List<Workout>) {
-        workouts = newWorkouts
+    fun moveWorkout(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in _workouts.indices || toIndex !in _workouts.indices) return
+        val item = _workouts.removeAt(fromIndex)
+        _workouts.add(toIndex, item)
+        // We don't save on every tiny movement to avoid spamming Firebase,
+        // but the UI will be reactive. We should call saveRoutines when drag ends.
+    }
+
+    fun onMoveEnd() {
         saveRoutines()
     }
 
     // 2. ROUTINE CRUD
     fun addWorkout(name: String) {
-        val newId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
-        workouts = workouts + Workout(newId, name, mutableListOf())
+        val newId = (_workouts.maxOfOrNull { it.id } ?: 0) + 1
+        _workouts.add(Workout(newId, name, mutableListOf()))
         saveRoutines()
     }
 
     fun deleteWorkout(workout: Workout) {
-        workouts = workouts.filter { it.id != workout.id }
+        _workouts.removeAll { it.id == workout.id }
         saveRoutines()
     }
 
     fun renameWorkout(workout: Workout, newName: String) {
-        workouts = workouts.map { 
-            if (it.id == workout.id) it.copy(name = newName) else it 
+        val index = _workouts.indexOfFirst { it.id == workout.id }
+        if (index != -1) {
+            _workouts[index] = _workouts[index].copy(name = newName)
+            saveRoutines()
         }
-        saveRoutines()
     }
 
     // 3. HISTORY CRUD
@@ -121,39 +133,36 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     // 4. WORKOUT SESSION LOGIC
     fun startWorkout(workout: Workout): Boolean {
-        if (workouts.any { it.isActive }) return false
+        if (_workouts.any { it.isActive }) return false
 
         val startTime = System.currentTimeMillis()
-        workouts = workouts.map {
-            if (it.id == workout.id) it.copy(isActive = true, startTime = startTime) else it
+        val index = _workouts.indexOfFirst { it.id == workout.id }
+        if (index != -1) {
+            _workouts[index] = _workouts[index].copy(isActive = true, startTime = startTime)
+            saveRoutines()
+            WorkoutOverlayService.start(getApplication(), workout.name, startTime, workout.id)
+            return true
         }
-        saveRoutines()
-        
-        // Start system-wide overlay
-        WorkoutOverlayService.start(getApplication(), workout.name, startTime, workout.id)
-        
-        return true
+        return false
     }
 
     fun discardWorkout(workout: Workout) {
-        val target = workouts.find { it.id == workout.id } ?: return
-        
-        workouts = workouts.map {
-            if (it.id == target.id) {
-                it.copy(isActive = false, startTime = null).apply {
-                    exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
-                }
-            } else it 
+        val index = _workouts.indexOfFirst { it.id == workout.id }
+        if (index != -1) {
+            val target = _workouts[index]
+            _workouts[index] = target.copy(isActive = false, startTime = null).apply {
+                exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
+            }
+            skipTimer()
+            saveRoutines()
+            WorkoutOverlayService.stop(getApplication())
         }
-        skipTimer()
-        saveRoutines()
-        
-        // Stop system-wide overlay
-        WorkoutOverlayService.stop(getApplication())
     }
 
     fun finishWorkout(workout: Workout) {
-        val target = workouts.find { it.id == workout.id } ?: return
+        val index = _workouts.indexOfFirst { it.id == workout.id }
+        if (index == -1) return
+        val target = _workouts[index]
         
         val now = System.currentTimeMillis()
         val duration = (now - (target.startTime ?: now)) / 1000
@@ -170,8 +179,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             totalSets = totalSets,
             exercises = target.exercises.map { ex -> 
                 val def = ExerciseLibrary.getDefinitions().find { d -> d.name == ex.name }
-                
-                // Final PR calculation for history persistence
                 val historicalBests = getPersonalBests(ex.name)
                 val doneSets = ex.sets.filter { s -> s.isDone }
                 
@@ -179,7 +186,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val sessionBest1RM = doneSets.maxOfOrNull { it.calculate1RM() } ?: -1.0
                 val sessionBestVolume = doneSets.maxOfOrNull { it.calculateVolume() } ?: -1.0
                 
-                // Identify the IDs of the LAST occurring session bests
                 val lastBestWeightId = doneSets.findLast { it.weight == sessionBestWeight }?.id ?: -1
                 val lastBest1RMId = doneSets.findLast { it.calculate1RM() == sessionBest1RM }?.id ?: -1
                 val lastBestVolumeId = doneSets.findLast { it.calculateVolume() == sessionBestVolume }?.id ?: -1
@@ -205,21 +211,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         skipTimer()
 
-        workouts = workouts.map {
-            if (it.id == target.id) {
-                it.copy(isActive = false, startTime = null).apply {
-                    exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
-                }
-            } else it
+        _workouts[index] = target.copy(isActive = false, startTime = null).apply {
+            exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
         }
         saveRoutines()
-        
-        // Stop system-wide overlay
         WorkoutOverlayService.stop(getApplication())
     }
 
     fun isAnyOtherWorkoutActive(currentWorkoutId: Int): Boolean {
-        return workouts.any { it.isActive && it.id != currentWorkoutId }
+        return _workouts.any { it.isActive && it.id != currentWorkoutId }
     }
 
     fun getPreviousSetsForExercise(exerciseName: String): List<WorkoutSet> {
