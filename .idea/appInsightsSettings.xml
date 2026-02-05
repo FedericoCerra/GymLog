@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.federicocerra.gymlog" />
-                  <option name="mobileSdkAppId" value="1:466375024652:android:645d8af583a74ea1088e29" />
-                  <option name="projectId" value="gymlog-4138a" />
-                  <option name="projectNumber" value="466375024652" />
+                  <option name="mobileSdkAppId" value="1:592118694742:android:9eb636b28ed1b11b218cf7" />
+                  <option name="projectId" value="gym-log-45182" />
+                  <option name="projectNumber" value="592118694742" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

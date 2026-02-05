@@ -1,6 +1,7 @@
 package com.federicocerra.gymlog.data
 
 import android.content.Context
+import android.util.Log
 import com.federicocerra.gymlog.model.Workout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,12 +18,13 @@ data class WorkoutSyncWrapper(
 )
 
 object WorkoutManager {
+    private const val TAG = "WorkoutManager"
     private val json = Json { 
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
     
-    private val db = FirebaseFirestore.getInstance()
+    private val db get() = FirebaseFirestore.getInstance()
 
     private fun getFileName(): String {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "default"
@@ -38,13 +40,14 @@ object WorkoutManager {
         try {
             val file = File(context.filesDir, getFileName())
             file.writeText(jsonString)
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { 
+            Log.e(TAG, "Error saving workouts locally", e)
+        }
 
         // 2. Push to Firebase
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             try {
-                // Store the full wrapper JSON string to keep logic consistent
                 val dataMap = mapOf(
                     "lastUpdated" to timestamp,
                     "routinesJson" to jsonString 
@@ -52,7 +55,12 @@ object WorkoutManager {
                 db.collection("users").document(userId)
                     .collection("data").document("workouts")
                     .set(dataMap)
-            } catch (e: Exception) { e.printStackTrace() }
+                    .await()
+            } catch (e: Exception) { 
+                Log.e(TAG, "Error saving workouts to Firebase", e)
+            }
+        } else {
+            Log.w(TAG, "User not authenticated, skipping Firebase save.")
         }
     }
 
@@ -60,7 +68,6 @@ object WorkoutManager {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return emptyList()
         val file = File(context.filesDir, getFileName())
 
-        // 1. Load Local
         var localWrapper: WorkoutSyncWrapper? = null
         if (file.exists()) {
             try {
@@ -71,10 +78,11 @@ object WorkoutManager {
                     val oldList = json.decodeFromString<List<Workout>>(content)
                     WorkoutSyncWrapper(0, oldList)
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { 
+                 Log.e(TAG, "Error loading local workouts", e)
+            }
         }
 
-        // 2. Sync with Firebase
         try {
             val document = db.collection("users").document(userId)
                 .collection("data").document("workouts")
@@ -86,7 +94,6 @@ object WorkoutManager {
                 val remoteJsonContent = document.getString("routinesJson")
                 
                 if (remoteJsonContent != null) {
-                    // Important: Determine if remoteJsonContent is the wrapper or just the list
                     val remoteRoutines = if (remoteJsonContent.contains("lastUpdated")) {
                         json.decodeFromString<WorkoutSyncWrapper>(remoteJsonContent).routines
                     } else {
@@ -97,21 +104,18 @@ object WorkoutManager {
                     val localTimestamp = localWrapper?.lastUpdated ?: -1L
                     
                     if (remoteTimestamp > localTimestamp) {
-                        // Remote is newer or local is missing
                         val fullRemoteJson = json.encodeToString(remoteWrapper)
                         file.writeText(fullRemoteJson)
                         return remoteWrapper.routines
                     } else if (localTimestamp > remoteTimestamp && localWrapper != null) {
-                        // Local is newer, push to remote
                         saveWorkouts(context, localWrapper.routines)
                     }
                 }
             } else if (localWrapper != null) {
-                // Remote doesn't exist but local does, push local
                 saveWorkouts(context, localWrapper.routines)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error syncing workouts from Firebase", e)
         }
 
         return localWrapper?.routines ?: emptyList()

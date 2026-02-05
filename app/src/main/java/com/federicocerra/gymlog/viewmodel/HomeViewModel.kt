@@ -138,7 +138,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 it.copy(isActive = false, startTime = null).apply {
                     exercises.forEach { ex -> ex.sets.forEach { s -> s.isDone = false } }
                 }
-            } else it
+            } else it 
         }
         skipTimer()
         saveRoutines()

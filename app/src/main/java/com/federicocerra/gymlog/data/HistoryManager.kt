@@ -1,6 +1,7 @@
 package com.federicocerra.gymlog.data
 
 import android.content.Context
+import android.util.Log
 import com.federicocerra.gymlog.model.FinishedWorkout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,8 +18,9 @@ data class HistorySyncWrapper(
 )
 
 object HistoryManager {
+    private const val TAG = "HistoryManager"
     private val json = Json { 
-        ignoreUnknownKeys = true 
+        ignoreUnknownKeys = true
         coerceInputValues = true
         encodeDefaults = true
     }
@@ -60,7 +62,9 @@ object HistoryManager {
         try {
             val file = File(context.filesDir, getFileName())
             file.writeText(jsonString)
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving history locally", e)
+        }
 
         // 2. Save to Firebase
         val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -73,7 +77,12 @@ object HistoryManager {
                 db.collection("users").document(userId)
                     .collection("data").document("history")
                     .set(dataMap)
-            } catch (_: Exception) { }
+                    .await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving history to Firebase", e)
+            }
+        } else {
+             Log.w(TAG, "User not authenticated, skipping Firebase save.")
         }
     }
 
@@ -81,7 +90,6 @@ object HistoryManager {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return emptyList()
         val file = File(context.filesDir, getFileName())
 
-        // 1. Load Local
         var localWrapper: HistorySyncWrapper? = null
         if (file.exists()) {
             try {
@@ -92,10 +100,11 @@ object HistoryManager {
                     val oldList = json.decodeFromString<List<FinishedWorkout>>(content)
                     HistorySyncWrapper(0, oldList)
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading local history", e)
+            }
         }
 
-        // 2. Sync with Firebase
         try {
             val document = db.collection("users").document(userId)
                 .collection("data").document("history")
@@ -112,24 +121,24 @@ object HistoryManager {
                     } else {
                         json.decodeFromString<List<FinishedWorkout>>(remoteJsonContent)
                     }
-                    
+
                     val remoteWrapper = HistorySyncWrapper(remoteTimestamp, remoteWorkouts)
                     val localTimestamp = localWrapper?.lastUpdated ?: -1L
 
                     if (remoteTimestamp > localTimestamp) {
-                        // Remote is newer or local is missing
                         val fullRemoteJson = json.encodeToString(remoteWrapper)
                         file.writeText(fullRemoteJson)
                         return remoteWrapper.workouts
                     } else if (localTimestamp > remoteTimestamp && localWrapper != null) {
-                        // Local is newer
                         saveHistoryInternal(context, localWrapper.workouts)
                     }
                 }
             } else if (localWrapper != null) {
                 saveHistoryInternal(context, localWrapper.workouts)
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error syncing history from Firebase", e)
+        }
 
         return localWrapper?.workouts ?: emptyList()
     }

@@ -1,16 +1,40 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea/
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Build results
+**/build/
+
+# IDE files
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# User-specific configuration
+local.properties
+
+# Log files
+*.log
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services
 app/google-services.json
+
+# Shared folders (if they contain build artifacts)
+shared/build/
+wear/build/
+app/build/
+
+# Kotlin-specific
+.kotlin/
