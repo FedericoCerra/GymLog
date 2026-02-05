@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -25,7 +26,8 @@ fun WorkoutListItem(
     workout: Workout,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onRename: (String) -> Unit
+    onRename: (String) -> Unit,
+    isDragging: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -45,7 +47,10 @@ fun WorkoutListItem(
                 shape = RoundedCornerShape(24.dp)
             ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            containerColor = if (isDragging) 
+                MaterialTheme.colorScheme.surfaceVariant 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         ),
         shape = RoundedCornerShape(24.dp)
     ) {
@@ -56,6 +61,13 @@ fun WorkoutListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                Icons.Default.DragHandle, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.padding(end = 12.dp)
+            )
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = workout.name,

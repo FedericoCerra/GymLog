@@ -1,30 +1,39 @@
 package com.federicocerra.gymlog.ui.screens
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.federicocerra.gymlog.model.Workout
 import com.federicocerra.gymlog.viewmodel.HomeViewModel
 import com.federicocerra.gymlog.ui.components.homeScreenHelpers.HomeHeader
 import com.federicocerra.gymlog.ui.components.homeScreenHelpers.WeeklySummaryCard
 import com.federicocerra.gymlog.ui.components.homeScreenHelpers.WorkoutListItem
 import com.federicocerra.gymlog.ui.components.common.ModernDialog
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
@@ -37,6 +46,13 @@ fun HomeScreen(
     val workouts = viewModel.workouts
     var showDialog by remember { mutableStateOf(false) }
     var newWorkoutName by remember { mutableStateOf("") }
+
+    // Drag and drop state
+    val localWorkouts = remember(workouts) { mutableStateListOf<Workout>().apply { addAll(workouts) } }
+    var draggedItemId by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+    val itemHeightPx = with(density) { (92.dp + 16.dp).toPx() } // Approximate height including spacing
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -74,17 +90,63 @@ fun HomeScreen(
                     )
                 }
 
-                // 1. YOUR ROUTINES LIST
-                items(workouts, key = { it.id }) { workout ->
-                    WorkoutListItem(
-                        workout = workout,
-                        onClick = { onWorkoutClick(workout) },
-                        onDelete = { viewModel.deleteWorkout(workout) },
-                        onRename = { newName -> viewModel.renameWorkout(workout, newName) }
-                    )
+                itemsIndexed(localWorkouts, key = { _, workout -> workout.id }) { index, workout ->
+                    val isDragging = draggedItemId == workout.id
+                    val elevation by animateDpAsState(if (isDragging) 12.dp else 0.dp, label = "elevation")
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(if (isDragging) 1f else 0f)
+                            .offset { 
+                                if (isDragging) IntOffset(0, dragOffsetY.roundToInt()) 
+                                else IntOffset.Zero 
+                            }
+                            .shadow(elevation, RoundedCornerShape(24.dp))
+                            .pointerInput(Unit) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = { 
+                                        draggedItemId = workout.id
+                                        dragOffsetY = 0f
+                                    },
+                                    onDragEnd = { 
+                                        draggedItemId = null
+                                        dragOffsetY = 0f
+                                        viewModel.updateWorkoutsOrder(localWorkouts.toList())
+                                    },
+                                    onDragCancel = { 
+                                        draggedItemId = null
+                                        dragOffsetY = 0f
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffsetY += dragAmount.y
+                                        
+                                        val currentIndex = localWorkouts.indexOfFirst { it.id == draggedItemId }
+                                        if (currentIndex != -1) {
+                                            if (dragOffsetY > itemHeightPx / 2 && currentIndex < localWorkouts.size - 1) {
+                                                localWorkouts.add(currentIndex + 1, localWorkouts.removeAt(currentIndex))
+                                                dragOffsetY -= itemHeightPx
+                                            }
+                                            else if (dragOffsetY < -itemHeightPx / 2 && currentIndex > 0) {
+                                                localWorkouts.add(currentIndex - 1, localWorkouts.removeAt(currentIndex))
+                                                dragOffsetY += itemHeightPx
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                    ) {
+                        WorkoutListItem(
+                            workout = workout,
+                            onClick = { onWorkoutClick(workout) },
+                            onDelete = { viewModel.deleteWorkout(workout) },
+                            onRename = { newName -> viewModel.renameWorkout(workout, newName) },
+                            isDragging = isDragging
+                        )
+                    }
                 }
 
-                // 2. MODERN "ADD" CARD AT THE BOTTOM
                 item {
                     Box(
                         modifier = Modifier

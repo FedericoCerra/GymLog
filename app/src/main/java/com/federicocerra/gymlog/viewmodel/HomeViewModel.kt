@@ -78,6 +78,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateWorkoutsOrder(newWorkouts: List<Workout>) {
+        workouts = newWorkouts
+        saveRoutines()
+    }
+
     // 2. ROUTINE CRUD
     fun addWorkout(name: String) {
         val newId = (workouts.maxOfOrNull { it.id } ?: 0) + 1
